@@ -71,7 +71,7 @@ async def scrape_funda(client, bot, area, url, ad_qry, next_button_qry, page_num
         for ad in ads:
             text = await ad.inner_text()
             # Here click into the element (ad and extract the page text)
-            # await ad.click()
+            # await ad.click(force=True)
             # current_url = page.url
             # print(f"The current URL after clicking the ad is: {current_url}")
 
@@ -80,7 +80,7 @@ async def scrape_funda(client, bot, area, url, ad_qry, next_button_qry, page_num
             From this text, cleanse it and convert the information (if there) to a JSON object matching this schema: 
 
             {
-            "full_address": "",
+            "address": "",
             "price": "",
             "area": "",
             "bedrooms": "",
@@ -89,7 +89,7 @@ async def scrape_funda(client, bot, area, url, ad_qry, next_button_qry, page_num
             }
 
             Field explenation:
-            full_address - a string, must be formatted street, postal code, city
+            address - a string, must be formatted street, postal code, city
             price - an int, price only, must exclude other chars 
             area - an int, area only, must exclude other chars 
             bedrooms - an int  -  bedrooms number 
