@@ -1,0 +1,16 @@
+{
+   "brokers":[
+      {
+         "name":"Funda",
+         "url":"https://www.funda.nl/zoeken/huur?selected_area=%5B%22{area}%22%5D&search_result={page_number}",
+         "ad_qry":"div[data-test-id=\"search-result-item\"]",
+         "next_button_qry":"li:not(.disabled) > a > span:has-text(\"Volgende\")"
+      },
+      {
+         "name":"Huurportaal",
+         "url":"https://huurportaal.nl/en/for-rent?location={area}&order=desc&rent=0-1300",
+         "ad_qry":"div[class=\"col-sm-4 col-md-4 col-xs-12 col-lg-3\"]",
+         "next_button_qry":"button[id=\"load-more\"]"
+      }
+   ]
+}
