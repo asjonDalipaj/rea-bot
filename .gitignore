@@ -141,3 +141,4 @@ rea-bot/results/
 # Test files
 rea-bot/poe-wrapper-test*
 rea-bot/funda_scraper.py
+rea-bot/api_key.txt

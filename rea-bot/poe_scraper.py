@@ -7,16 +7,11 @@ import hashlib
 from playwright.async_api import async_playwright
 from poe_api_wrapper import PoeApi
 
-# Setup connection to Poe
-client = PoeApi("YOUR_TOKEN")
-
 data = []
-
-bot = "a2"
 
 # Utilities func
 def create_text_hash(text):
-    # Create a hash of the complete text
+    # Create a hash  of the complete text
     return hashlib.md5(text.encode('utf-8')).hexdigest()
 
 def load_existing_ids(file_path):
@@ -29,7 +24,7 @@ def load_existing_ids(file_path):
         return set()
 
 
-async def send_message_with_retry(bot, message, chat_id="", max_retries=3):
+async def send_message_with_retry(client, bot, message, chat_id="", max_retries=3):
     attempt = 0
     while attempt < max_retries:
         try:
@@ -45,7 +40,7 @@ async def send_message_with_retry(bot, message, chat_id="", max_retries=3):
                 raise e
     print(f"Failed to send message after {max_retries} retries. Skipping {message}")
 
-async def scrape_funda(area, url, ad_qry, next_button_qry, page_number=1):
+async def scrape_funda(client, bot, area, url, ad_qry, next_button_qry, page_number=1):
     async with async_playwright() as p:
 
         browser = await p.chromium.launch(headless=True) 
@@ -97,9 +92,9 @@ async def scrape_funda(area, url, ad_qry, next_button_qry, page_number=1):
             full_address - a string, must be formatted street, postal code, city
             price - an int, price only, must exclude other chars 
             area - an int, area only, must exclude other chars 
-            bedrooms - an int of the bedrooms number 
-            energy_label - a string of the energy label 
-            broker - a string of the broker name 
+            bedrooms - an int  -  bedrooms number 
+            energy_label - a string  -  energy label 
+            broker - a string  -  broker name 
 
             Note: Limit responses to valid JSON, with no explanatory text. Never truncate the JSON with an ellipsis. Always srurround the values with double quotes and escape quotes with \\. Always omit trailing commas. 
 
@@ -107,7 +102,7 @@ async def scrape_funda(area, url, ad_qry, next_button_qry, page_number=1):
             """
             message += text
             # print(f'message: {message}')
-            response_text = await send_message_with_retry(bot, message, 270446664)
+            response_text = await send_message_with_retry(client, bot, message, 270446664)
             print(response_text)
 
             data.append(response_text)
@@ -116,10 +111,10 @@ async def scrape_funda(area, url, ad_qry, next_button_qry, page_number=1):
         # Handle pagination if required
         next_button = await page.query_selector(next_button_qry)
         # print("Next Page btn:", next_button)
-        if next_button:
-            print(f"Another page for {area}")     
-            # await page.screenshot(path="screenshot2.png")
-            await scrape_funda(area, url, ad_qry, next_button_qry, page_number + 1)
+        # if next_button:
+        #     print(f"Another page for {area}")     
+        #     # await page.screenshot(path="screenshot2.png")
+        #     await scrape_funda(area, url, ad_qry, next_button_qry, page_number + 1)
 
         await browser.close()
 
@@ -139,6 +134,16 @@ if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "-area":
         if len(sys.argv) > 2:
             area = sys.argv[2]
+
+    def setup_connection_to_poe(api_key):
+        client = PoeApi(api_key)
+        bot = "a2"
+        return client, bot
+
+    # Read API key from a file and pass it to the function
+    with open('api_key.txt', 'r') as file:
+        api_key = file.read().strip()  # .strip() removes any leading/trailing whitespace
+        client, bot = setup_connection_to_poe(api_key)
 
     # Read brokers 
     # Function to load configurations
@@ -167,4 +172,4 @@ if __name__ == "__main__":
 
     # existing_addresses = load_existing_ids('results.json')
 
-    asyncio.run(scrape_funda(area, url, ad_qry, next_button_qry))
+    asyncio.run(scrape_funda(client, bot, area, url, ad_qry, next_button_qry))
