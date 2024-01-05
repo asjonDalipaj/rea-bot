@@ -17,7 +17,6 @@ This tool provides an automated way to gather information on real estate listing
 
 To set up your development environment, follow these steps:
 
-```bash
 # Clone the repository
 git clone https://github.com/yourusername/rea-info-bot.git
 
@@ -33,6 +32,12 @@ source venv/bin/activate
 
 # Install the dependencies
 pip install -r requirements.txt
+
+# Setup Poe token
+I've used an existing project for using Poe in python - thanks to [poe-wrapper]([https://github.com/yourusername/rea-info-bot/contributors](https://pypi.org/project/poe-api-wrapper/))
+Follow their guide for getting a Poe token. Then replace it into the code:
+```
+PoeApi("YOUR_TOKEN")
 ```
 
 **Note:** The `venv/` directory is not to be committed to your version control system.
@@ -42,7 +47,13 @@ pip install -r requirements.txt
 With the virtual environment activated and the dependencies installed, you can run the scraper using the following command:
 
 ```bash
-python your_project_code/poe_scraper.py
+python your_project_code/poe_scraper.py -area <location>
+```
+
+It features a terminal argument 'area' - used for passing the location of which you want to scrape.
+
+```bash
+example: python your_project_code/poe_scraper.py -area utrecht
 ```
 
 ## Contributing
