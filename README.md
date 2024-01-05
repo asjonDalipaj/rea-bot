@@ -34,7 +34,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 # Setup Poe token
-I've used an existing project for using Poe in python - thanks to [poe-wrapper]([https://github.com/yourusername/rea-info-bot/contributors](https://pypi.org/project/poe-api-wrapper/))
+I've used an existing project for using Poe in python - thanks to [poe-wrapper](https://pypi.org/project/poe-api-wrapper/))
 Follow their guide for getting a Poe token. Then replace it into the code:
 ```
 PoeApi("YOUR_TOKEN")
@@ -50,10 +50,10 @@ With the virtual environment activated and the dependencies installed, you can r
 python your_project_code/poe_scraper.py -area <location>
 ```
 
-It features a terminal argument 'area' - used for passing the location of which you want to scrape.
+It features a terminal argument 'area' - used for passing the location of which you want to scrape. example:
 
 ```bash
-example: python your_project_code/poe_scraper.py -area utrecht
+python your_project_code/poe_scraper.py -area utrecht
 ```
 
 ## Contributing
