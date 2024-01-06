@@ -40,7 +40,7 @@ async def send_message_with_retry(client, bot, message, chat_id="", max_retries=
                 raise e
     print(f"Failed to send message after {max_retries} retries. Skipping {message}")
 
-async def scrape_funda(client, bot, area, url, ad_qry, next_button_qry, page_number=1):
+async def scrape_funda(client, bot, area, url, ad_selector, next_button_selector, cookie_button_selector, page_number=1):
     async with async_playwright() as p:
 
         browser = await p.chromium.launch(headless=True) 
@@ -64,28 +64,48 @@ async def scrape_funda(client, bot, area, url, ad_qry, next_button_qry, page_num
         print(f"-- Scraping page {page_number}--")
         # Wait for the page to load fully
         await page.wait_for_load_state()
+        await page.click(cookie_button_selector)
         
         # Extract data from the page
-        ads = await page.query_selector_all(ad_qry)
+        ads = await page.query_selector_all(ad_selector)
 
         for ad in ads:
-            text = await ad.inner_text()
-            # Here click into the element (ad and extract the page text)
-            # await ad.click(force=True)
-            # current_url = page.url
-            # print(f"The current URL after clicking the ad is: {current_url}")
+            try:
+                text = await ad.inner_text()
+                await ad.click()
+                await page.wait_for_url("**/listings/**")
+                # Check if a new page context is created (new tab)
+                # print(f"Entered ad - No new context created - printing URL - {page.url}")
+                # await page.screenshot(path='screenshot1.png')
+                page_text = await page.inner_text('body')
+                # Save the page_text to a file
+                # with open('page_content_1.txt', 'w', encoding='utf-8') as file:
+                #     file.write(page_text)
+                # print("Printed out the page text")
+                await page.go_back()
+                # await page.wait_for_url("**/for-rent**")
+                # print(f"Going back - new url: {page.url}")
+            except Exception as e:
+                # Take a screenshot after the click
+                # await page.screenshot(path='screenshot_exc.png')
+                # page_text = await page.inner_html('body')
+                # # Save the page_text to a file
+                # with open('page_content.txt', 'w', encoding='utf-8') as file:
+                #     file.write(page_text)
+                print(f"Error during ad click or navigation: {e}")
+                return
 
             # print(f'single ad: {text}')
             message = """
             From this text, cleanse it and convert the information (if there) to a JSON object matching this schema: 
 
             {
-            "address": "",
-            "price": "",
-            "area": "",
-            "bedrooms": "",
-            "energy_label": "",
-            "broker": "",
+                "address": "",
+                "price": "",
+                "area": "",
+                "bedrooms": "",
+                "energy_label": "",
+                "broker": "",
             }
 
             Field explenation:
@@ -100,21 +120,22 @@ async def scrape_funda(client, bot, area, url, ad_qry, next_button_qry, page_num
 
             Text:
             """
-            message += text
+            message += text + "\n" + page_text
             # print(f'message: {message}')
-            response_text = await send_message_with_retry(client, bot, message, 270446664)
+            response_text = await send_message_with_retry(client, bot, message, 270446664) # chinchilla
+            # response_text = await send_message_with_retry(client, bot, message, 262252582) # a2
             print(response_text)
 
             data.append(response_text)
             # print(f"Data - page {page_number}: {data}")
             
-        # Handle pagination if required
-        next_button = await page.query_selector(next_button_qry)
+        # TODO - Handle pagination if required
+        next_button = await page.query_selector(next_button_selector)
         # print("Next Page btn:", next_button)
         # if next_button:
         #     print(f"Another page for {area}")     
         #     # await page.screenshot(path="screenshot2.png")
-        #     await scrape_funda(area, url, ad_qry, next_button_qry, page_number + 1)
+        #     await scrape_funda(area, url, ad_selector, next_button_selector, page_number + 1)
 
         await browser.close()
 
@@ -137,7 +158,8 @@ if __name__ == "__main__":
 
     def setup_connection_to_poe(api_key):
         client = PoeApi(api_key)
-        bot = "a2"
+        bot = "chinchilla_instruct"
+        # bot = "a2"
         return client, bot
 
     # Read API key from a file and pass it to the function
@@ -160,16 +182,17 @@ if __name__ == "__main__":
 
     # Usage
     config = load_config('./utilities/brokers.json')
-    broker_info = get_broker_info('Funda', config)
+    broker_info = get_broker_info('Huurportaal', config)
 
     if broker_info:
         print(f"Scraping {broker_info['name']}")
         url = broker_info['url']
-        ad_qry = broker_info['ad_qry']
-        next_button_qry = broker_info['next_button_qry']
+        ad_selector = broker_info['ad_selector']
+        next_button_selector = broker_info['next_button_selector']
+        cookie_button_selector = broker_info['cookie_button_selector']
     else:
         print("Broker not found.")
 
     # existing_addresses = load_existing_ids('results.json')
 
-    asyncio.run(scrape_funda(client, bot, area, url, ad_qry, next_button_qry))
+    asyncio.run(scrape_funda(client, bot, area, url, ad_selector, next_button_selector, cookie_button_selector))
