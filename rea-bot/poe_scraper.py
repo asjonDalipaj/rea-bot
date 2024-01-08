@@ -4,6 +4,7 @@ import json
 import re
 import sys
 import hashlib
+import os
 from playwright.async_api import async_playwright
 from poe_api_wrapper import PoeApi
 
@@ -22,7 +23,14 @@ def load_existing_ids(file_path):
             return {item['id'] for item in data}
     except FileNotFoundError:
         return set()
-
+    
+# Function to save data
+def save_data(data, area):
+    filename = f'./results/results_{area}.json'
+    # Make sure the directory exists
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    with open(filename, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=4)
 
 async def send_message_with_retry(client, bot, message, chat_id="", max_retries=3):
     attempt = 0
@@ -53,91 +61,117 @@ async def scrape_funda(client, bot, area, url, ad_selector, next_button_selector
         ];
 
         context = await browser.new_context(
-            user_agent=userAgentStrings[random.randint(0, len(userAgentStrings) - 1)]
+            user_agent=userAgentStrings[random.randint(0, len(userAgentStrings) - 1)],
+            bypass_csp=True
         )
-
-        page = await context.new_page()
         
+        page = await context.new_page()
+
         url = url.format(area=area, page_number=page_number)
         await page.goto(url)
-
-        print(f"-- Scraping page {page_number}--")
-        # Wait for the page to load fully
-        await page.wait_for_load_state()
-        await page.click(cookie_button_selector)
         
-        # Extract data from the page
-        ads = await page.query_selector_all(ad_selector)
-
-        for ad in ads:
-            try:
-                text = await ad.inner_text()
-                await ad.click()
-                await page.wait_for_url("**/listings/**")
-                # Check if a new page context is created (new tab)
-                # print(f"Entered ad - No new context created - printing URL - {page.url}")
-                # await page.screenshot(path='screenshot1.png')
-                page_text = await page.inner_text('body')
-                # Save the page_text to a file
-                # with open('page_content_1.txt', 'w', encoding='utf-8') as file:
-                #     file.write(page_text)
-                # print("Printed out the page text")
-                await page.go_back()
-                # await page.wait_for_url("**/for-rent**")
-                # print(f"Going back - new url: {page.url}")
-            except Exception as e:
-                # Take a screenshot after the click
-                # await page.screenshot(path='screenshot_exc.png')
-                # page_text = await page.inner_html('body')
-                # # Save the page_text to a file
-                # with open('page_content.txt', 'w', encoding='utf-8') as file:
-                #     file.write(page_text)
-                print(f"Error during ad click or navigation: {e}")
-                return
-
-            # print(f'single ad: {text}')
-            message = """
-            From this text, cleanse it and convert the information (if there) to a JSON object matching this schema: 
-
-            {
-                "address": "",
-                "price": "",
-                "area": "",
-                "bedrooms": "",
-                "energy_label": "",
-                "broker": "",
+        # Todo check for removal - Remove cookie dialog for cleaning up page
+        await page.evaluate("""() => {
+            const modal = document.querySelector('.didomi-popup-backdrop');
+            if (modal) {
+                modal.parentElement.removeChild(modal);
             }
+        }""")
 
-            Field explenation:
-            address - a string, must be formatted street, postal code, city
-            price - an int, price only, must exclude other chars 
-            area - an int, area only, must exclude other chars 
-            bedrooms - an int  -  bedrooms number 
-            energy_label - a string  -  energy label 
-            broker - a string  -  broker name 
+        # await page.screenshot(path='screenshot_outside.png')
 
-            Note: Limit responses to valid JSON, with no explanatory text. Never truncate the JSON with an ellipsis. Always srurround the values with double quotes and escape quotes with \\. Always omit trailing commas. 
-
-            Text:
-            """
-            message += text + "\n" + page_text
-            # print(f'message: {message}')
-            response_text = await send_message_with_retry(client, bot, message, 270446664) # chinchilla
-            # response_text = await send_message_with_retry(client, bot, message, 262252582) # a2
-            print(response_text)
-
-            data.append(response_text)
-            # print(f"Data - page {page_number}: {data}")
+        try:
+            print(f"-- Scraping page {page_number}--")
+            # Wait for the page to load fully
+            await page.wait_for_load_state()
+            # page_text = await page.inner_html('body')
+            # # Save the page_text to a file
+            # with open('page_content_outside.txt', 'w', encoding='utf-8') as file:
+            #     file.write(page_text)
+            # await page.click(cookie_button_selector)
             
-        # TODO - Handle pagination if required
-        next_button = await page.query_selector(next_button_selector)
-        # print("Next Page btn:", next_button)
-        # if next_button:
-        #     print(f"Another page for {area}")     
-        #     # await page.screenshot(path="screenshot2.png")
-        #     await scrape_funda(area, url, ad_selector, next_button_selector, page_number + 1)
+            # Extract data from the page
+            ads = await page.query_selector_all(ad_selector)
+            for ad in ads:
+                    text = await ad.inner_text()
+                    # print(f"-- Extracting data from {text}")
+                    # Taking in consideration every website has an anchor for the ad details/content
+                    anchor = await ad.query_selector('a')
+                    
+                    if anchor:
+                        href = await anchor.get_attribute('href')
+                        if href:
+                            print(f"Ad link: {href}")
 
-        await browser.close()
+                            # Create a new context with a different user agent for each ad
+                            new_user_agent = userAgentStrings[random.randint(0, len(userAgentStrings) - 1)]
+                            ad_context = await browser.new_context(user_agent=new_user_agent)
+
+                            # Open a new page within the new context
+                            ad_page = await ad_context.new_page()
+
+                            # Click the ad using the selector within the new page
+                            await ad_page.goto(f"{href}")
+                            await ad_page.wait_for_load_state()
+
+                            # Reading the whole body because might be the AI can cross-find some information
+                            # from other boxes present in the page rather the description only
+                            page_text = await ad_page.inner_text('body')
+
+                            # print(f'single ad: {text}')
+                            message = """
+                            From this text, cleanse it and convert the information (if there) to a JSON object matching this schema: 
+
+                            {
+                                "address": "",
+                                "price": "",
+                                "area": "",
+                                "bedrooms": "",
+                                "energy_label": "",
+                                "broker": "",
+                            }
+
+                            Field explenation:
+                            address - a string, must be formatted street, postal code, city
+                            price - an int, price only, must exclude other chars 
+                            area - an int, area only, must exclude other chars 
+                            bedrooms - an int  -  bedrooms number 
+                            energy_label - a string  -  energy label 
+                            broker - a string  -  broker name 
+
+                            Note: Limit responses to valid JSON, with no explanatory text. Never truncate the JSON with an ellipsis. Always srurround the values with double quotes and escape quotes with \\. Always omit trailing commas. 
+
+                            Text:
+                            """
+                            message += text + "\n" + page_text
+                            print(f'message: {message}')
+                            response_text = await send_message_with_retry(client, bot, message, 270446664) # chinchilla
+                            # response_text = await send_message_with_retry(client, bot, message, 262252582) # a2
+                            print(response_text)
+
+                            data.append(response_text)
+                            save_data(data, area)
+                            # print(f"Data - page {page_number}: {data}")
+
+                            # Close the ad page and context after processing
+                            await ad_page.close()
+                            await ad_context.close()
+                        else:
+                            print("No href found! Skipping")
+                
+                    # TODO - Handle pagination if required
+                    next_button = await page.query_selector(next_button_selector)
+                    # print("Next Page btn:", next_button)
+                    # if next_button:
+                    #     print(f"Another page for {area}")     
+                    #     # await page.screenshot(path="screenshot2.png")
+                    #     await scrape_funda(area, url, ad_selector, next_button_selector, page_number + 1)
+        except Exception as e:
+            # Save before re-raising the exception
+            save_data(data, area)
+            print(f"There was an error processing this ad - {text} - Error: {e}")  # Re-raise the exception after saving
+        finally:
+            await browser.close()
 
     # Write data to JSON file
     parsed_data = [json.loads(ad) for ad in data]
@@ -163,8 +197,8 @@ if __name__ == "__main__":
         return client, bot
 
     # Read API key from a file and pass it to the function
-    with open('api_key.txt', 'r') as file:
-        api_key = file.read().strip()  # .strip() removes any leading/trailing whitespace
+    with open('./utilities/api_key.json', 'r') as file:
+        api_key = json.load(file)["key"]
         client, bot = setup_connection_to_poe(api_key)
 
     # Read brokers 
@@ -182,7 +216,7 @@ if __name__ == "__main__":
 
     # Usage
     config = load_config('./utilities/brokers.json')
-    broker_info = get_broker_info('Huurportaal', config)
+    broker_info = get_broker_info('Homesearch', config)
 
     if broker_info:
         print(f"Scraping {broker_info['name']}")
@@ -193,6 +227,9 @@ if __name__ == "__main__":
     else:
         print("Broker not found.")
 
-    # existing_addresses = load_existing_ids('results.json')
+    existing_addresses = load_existing_ids(f"./results/results_{area}.json")
 
-    asyncio.run(scrape_funda(client, bot, area, url, ad_selector, next_button_selector, cookie_button_selector))
+    try:
+        asyncio.run(scrape_funda(client, bot, area, url, ad_selector, next_button_selector, cookie_button_selector))
+    except Exception as e:
+        print(f"An error occurred while scraping {area}: {e}")

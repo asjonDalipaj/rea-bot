@@ -5,7 +5,7 @@
          "url":"https://www.funda.nl/zoeken/huur?selected_area=%5B%22{area}%22%5D&search_result={page_number}",
          "ad_selector":"div[data-test-id=\"search-result-item\"]",
          "next_button_selector":"li:not(.disabled) > a > span:has-text(\"Volgende\")",
-         "cookie_button_selector":"button[id=\"load-more\"]"
+         "cookie_button_selector":"span:has-text(\"Afwijzen en sluiten\")"
       },
       {
          "name":"Huurportaal",
@@ -13,6 +13,13 @@
          "ad_selector":"div[class=\"col-sm-4 col-md-4 col-xs-12 col-lg-3\"] > div:not(.search-agent-signup-box) ",
          "next_button_selector":"button[id=\"load-more\"]",
          "cookie_button_selector":"button[data-coi-action=\"reject_all\"]"
+      },
+      {
+         "name":"Homesearch",
+         "url":"https://homesearch.nl/te-huur",
+         "ad_selector":"div[class=\"card mb-3\"]",
+         "next_button_selector":"",
+         "cookie_button_selector":""
       }
    ]
 }
