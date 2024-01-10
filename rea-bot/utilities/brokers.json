@@ -2,24 +2,43 @@
    "brokers":[
       {
          "name":"Funda",
+         "domain":"https://www.funda.nl",
          "url":"https://www.funda.nl/zoeken/huur?selected_area=%5B%22{area}%22%5D&search_result={page_number}",
          "ad_selector":"div[data-test-id=\"search-result-item\"]",
          "next_button_selector":"li:not(.disabled) > a > span:has-text(\"Volgende\")",
-         "cookie_button_selector":"span:has-text(\"Afwijzen en sluiten\")"
+         "cookie_modal_selector":".didomi-popup-backdrop"
       },
       {
          "name":"Huurportaal",
+         "domain":"https://huurportaal.nl",
          "url":"https://huurportaal.nl/en/for-rent?location={area}&order=desc&rent=0-1300",
          "ad_selector":"div[class=\"col-sm-4 col-md-4 col-xs-12 col-lg-3\"] > div:not(.search-agent-signup-box) ",
          "next_button_selector":"button[id=\"load-more\"]",
-         "cookie_button_selector":"button[data-coi-action=\"reject_all\"]"
+         "cookie_modal_selector":"button[data-coi-action=\"reject_all\"]"
       },
       {
          "name":"Homesearch",
+         "domain":"https://homesearch.nl",
          "url":"https://homesearch.nl/te-huur",
-         "ad_selector":"div[class=\"card mb-3\"]",
+         "ad_selector":"div[class=\"card mb-3\"] > div:not(.col-auto text-right)",
          "next_button_selector":"",
-         "cookie_button_selector":""
+         "cookie_modal_selector":""
+      },
+      {
+         "name":"Rotvast",
+         "domain":"https://www.rotsvast.nl",
+         "url":"https://www.rotsvast.nl/woningaanbod/?type=2&searchPattern={area}&office=0",
+         "ad_selector":"div[class*=\"residence-gallery\"]",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
+         "name":"Vbo",
+         "domain":"vbo.nl",
+         "url":"https://www.vbo.nl/huurwoningen?q={area}&straal=&huurprijs_van=&huurprijs_tot=",
+         "ad_selector":"div[class=\"col-12 col-sm-6 col-lg-4\"]",
+         "next_button_selector":"",
+         "cookie_modal_selector":"div[id=\"cookiewall\"]"
       }
    ]
 }

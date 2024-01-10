@@ -48,7 +48,7 @@ async def send_message_with_retry(client, bot, message, chat_id="", max_retries=
                 raise e
     print(f"Failed to send message after {max_retries} retries. Skipping {message}")
 
-async def scrape_funda(client, bot, area, url, ad_selector, next_button_selector, cookie_button_selector, page_number=1):
+async def scrape_funda(client, bot, area, url, domain, ad_selector, next_button_selector, cookie_modal_selector, page_number=1):
     async with async_playwright() as p:
 
         browser = await p.chromium.launch(headless=True) 
@@ -69,26 +69,25 @@ async def scrape_funda(client, bot, area, url, ad_selector, next_button_selector
 
         url = url.format(area=area, page_number=page_number)
         await page.goto(url)
-        
-        # Todo check for removal - Remove cookie dialog for cleaning up page
-        await page.evaluate("""() => {
-            const modal = document.querySelector('.didomi-popup-backdrop');
-            if (modal) {
-                modal.parentElement.removeChild(modal);
-            }
-        }""")
 
-        # await page.screenshot(path='screenshot_outside.png')
+        # Todo check for removal - Remove cookie dialog for cleaning up page
+        if cookie_modal_selector:
+            eval_func = """() => {{
+                const modal = document.querySelector('{cookie_modal_selector}');
+                if (modal) {{
+                    modal.parentElement.removeChild(modal);
+                }}
+            }}"""
+
+            eval_func = eval_func.format(cookie_modal_selector=cookie_modal_selector)
+            await page.evaluate(eval_func)
+        else:
+            print("No cookie modal defined in config, continuing")
 
         try:
             print(f"-- Scraping page {page_number}--")
             # Wait for the page to load fully
             await page.wait_for_load_state()
-            # page_text = await page.inner_html('body')
-            # # Save the page_text to a file
-            # with open('page_content_outside.txt', 'w', encoding='utf-8') as file:
-            #     file.write(page_text)
-            # await page.click(cookie_button_selector)
             
             # Extract data from the page
             ads = await page.query_selector_all(ad_selector)
@@ -98,16 +97,25 @@ async def scrape_funda(client, bot, area, url, ad_selector, next_button_selector
                     # Taking in consideration every website has an anchor for the ad details/content
                     anchor = await ad.query_selector('a')
                     
+                    # Todo - Check if the data is not already saved
+                    # if ad_data['id'] not in existinclassg_ids:
+                    #     data.append(ad_data)  # Add the ad's data to the list
+                    #     existing_ids.add(ad_data['id'])
+                        
                     if anchor:
                         href = await anchor.get_attribute('href')
                         if href:
+
+                            #Check whether missing domain url
+                            if domain not in href:
+                                href = domain + href
+                            
                             print(f"Ad link: {href}")
 
                             # Create a new context with a different user agent for each ad
                             new_user_agent = userAgentStrings[random.randint(0, len(userAgentStrings) - 1)]
                             ad_context = await browser.new_context(user_agent=new_user_agent)
 
-                            # Open a new page within the new context
                             ad_page = await ad_context.new_page()
 
                             # Click the ad using the selector within the new page
@@ -129,6 +137,7 @@ async def scrape_funda(client, bot, area, url, ad_selector, next_button_selector
                                 "bedrooms": "",
                                 "energy_label": "",
                                 "broker": "",
+                                "ad_link": ""
                             }
 
                             Field explenation:
@@ -144,7 +153,7 @@ async def scrape_funda(client, bot, area, url, ad_selector, next_button_selector
                             Text:
                             """
                             message += text + "\n" + page_text
-                            print(f'message: {message}')
+                            # print(f'message: {message}')
                             response_text = await send_message_with_retry(client, bot, message, 270446664) # chinchilla
                             # response_text = await send_message_with_retry(client, bot, message, 262252582) # a2
                             print(response_text)
@@ -160,11 +169,10 @@ async def scrape_funda(client, bot, area, url, ad_selector, next_button_selector
                             print("No href found! Skipping")
                 
                     # TODO - Handle pagination if required
-                    next_button = await page.query_selector(next_button_selector)
+                    # next_button = await page.query_selector(next_button_selector)
                     # print("Next Page btn:", next_button)
                     # if next_button:
                     #     print(f"Another page for {area}")     
-                    #     # await page.screenshot(path="screenshot2.png")
                     #     await scrape_funda(area, url, ad_selector, next_button_selector, page_number + 1)
         except Exception as e:
             # Save before re-raising the exception
@@ -216,20 +224,18 @@ if __name__ == "__main__":
 
     # Usage
     config = load_config('./utilities/brokers.json')
-    broker_info = get_broker_info('Homesearch', config)
 
-    if broker_info:
-        print(f"Scraping {broker_info['name']}")
-        url = broker_info['url']
-        ad_selector = broker_info['ad_selector']
-        next_button_selector = broker_info['next_button_selector']
-        cookie_button_selector = broker_info['cookie_button_selector']
-    else:
-        print("Broker not found.")
-
-    existing_addresses = load_existing_ids(f"./results/results_{area}.json")
-
-    try:
-        asyncio.run(scrape_funda(client, bot, area, url, ad_selector, next_button_selector, cookie_button_selector))
-    except Exception as e:
-        print(f"An error occurred while scraping {area}: {e}")
+    # Loop through all the brokers in the config
+    for broker in config['brokers']:
+        print(f"Scraping {broker['name']}")
+        domain = broker['domain']
+        url = broker['url']
+        ad_selector = broker['ad_selector']
+        next_button_selector = broker['next_button_selector']
+        cookie_modal_selector = broker['cookie_modal_selector']
+        
+        try:
+            # Call scrape function for the current broker
+            asyncio.run(scrape_funda(client, bot, area, url, domain, ad_selector, next_button_selector, cookie_modal_selector))
+        except Exception as e:
+            print(f"An error occurred while scraping {broker['name']} for area {area}: {e}")
