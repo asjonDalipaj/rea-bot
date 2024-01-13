@@ -8,7 +8,7 @@ import os
 from playwright.async_api import async_playwright
 from poe_api_wrapper import PoeApi
 
-data = []
+data = ''
 
 # Utilities func
 def create_text_hash(text):
@@ -23,14 +23,32 @@ def load_existing_ids(file_path):
             return {item['id'] for item in data}
     except FileNotFoundError:
         return set()
-    
-# Function to save data
+
+# Cleanse and save data
 def save_data(data, area):
-    filename = f'./results/results_{area}.json'
+    # Strip whitespace that might be at the start/end of the string
+    data = data.strip()
+    
+    # Print the string to make sure it's formatted correctly
+    print(data)
+    
+    # Define the filename for the results
+    filename = f'./results/results_{area}.jsonl'
+    
     # Make sure the directory exists
     os.makedirs(os.path.dirname(filename), exist_ok=True)
-    with open(filename, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
+    
+    try:
+        # Try to parse the string into JSON
+        new_data = json.loads(data)
+    except json.JSONDecodeError:
+        # If it fails, raise an error
+        raise ValueError("New data is not valid JSON and cannot be appended")
+    
+    # Open the file in append mode and write the new JSON object
+    with open(filename, 'a', encoding='utf-8') as f:
+        # Write the JSON data as a single line
+        f.write(json.dumps(new_data, ensure_ascii=False) + "\n")
 
 async def send_message_with_retry(client, bot, message, chat_id="", max_retries=3):
     attempt = 0
@@ -43,7 +61,8 @@ async def send_message_with_retry(client, bot, message, chat_id="", max_retries=
             if 'Server Error' in str(e):
                 attempt += 1
                 print(f"Server Error encountered. Retry attempt {attempt}/{max_retries}.")
-                await asyncio.sleep(20) # Wait for 20 seconds before retrying
+                # Wait for 20 seconds before retrying
+                await asyncio.sleep(20)
             else:
                 raise e
     print(f"Failed to send message after {max_retries} retries. Skipping {message}")
@@ -70,7 +89,7 @@ async def scrape_funda(client, bot, area, url, domain, ad_selector, next_button_
         url = url.format(area=area, page_number=page_number)
         await page.goto(url)
 
-        # Todo check for removal - Remove cookie dialog for cleaning up page
+        # Remove cookie dialog for cleaning up page
         if cookie_modal_selector:
             eval_func = """() => {{
                 const modal = document.querySelector('{cookie_modal_selector}');
@@ -87,16 +106,21 @@ async def scrape_funda(client, bot, area, url, domain, ad_selector, next_button_
         try:
             print(f"-- Scraping page {page_number}--")
             # Wait for the page to load fully
+            # Todo - case of Domica loads the page but not yet loading the selectors
             await page.wait_for_load_state()
-            
+                        
             # Extract data from the page
             ads = await page.query_selector_all(ad_selector)
             for ad in ads:
                     text = await ad.inner_text()
                     # print(f"-- Extracting data from {text}")
+                    
                     # Taking in consideration every website has an anchor for the ad details/content
                     anchor = await ad.query_selector('a')
-                    
+                    if not anchor:
+                        print("No found - taking same element")
+                        anchor = ad
+
                     # Todo - Check if the data is not already saved
                     # if ad_data['id'] not in existinclassg_ids:
                     #     data.append(ad_data)  # Add the ad's data to the list
@@ -131,22 +155,21 @@ async def scrape_funda(client, bot, area, url, domain, ad_selector, next_button_
                             From this text, cleanse it and convert the information (if there) to a JSON object matching this schema: 
 
                             {
-                                "address": "",
-                                "price": "",
-                                "area": "",
-                                "bedrooms": "",
-                                "energy_label": "",
-                                "broker": "",
-                                "ad_link": ""
+                                "address":"",
+                                "price":"",
+                                "area":"",
+                                "bedrooms":"",
+                                "energy_label":"",
+                                "broker":""
                             }
 
                             Field explenation:
-                            address - a string, must be formatted street, postal code, city
+                            address - a string, must be formatted in: street, postal code, city
                             price - an int, price only, must exclude other chars 
                             area - an int, area only, must exclude other chars 
-                            bedrooms - an int  -  bedrooms number 
-                            energy_label - a string  -  energy label 
-                            broker - a string  -  broker name 
+                            bedrooms - an int
+                            energy_label - a string
+                            broker - a string
 
                             Note: Limit responses to valid JSON, with no explanatory text. Never truncate the JSON with an ellipsis. Always srurround the values with double quotes and escape quotes with \\. Always omit trailing commas. 
 
@@ -156,10 +179,9 @@ async def scrape_funda(client, bot, area, url, domain, ad_selector, next_button_
                             # print(f'message: {message}')
                             response_text = await send_message_with_retry(client, bot, message, 270446664) # chinchilla
                             # response_text = await send_message_with_retry(client, bot, message, 262252582) # a2
-                            print(response_text)
+                            # print(f'Response text: {response_text}')
 
-                            data.append(response_text)
-                            save_data(data, area)
+                            save_data(response_text, area)
                             # print(f"Data - page {page_number}: {data}")
 
                             # Close the ad page and context after processing
@@ -175,8 +197,6 @@ async def scrape_funda(client, bot, area, url, domain, ad_selector, next_button_
                     #     print(f"Another page for {area}")     
                     #     await scrape_funda(area, url, ad_selector, next_button_selector, page_number + 1)
         except Exception as e:
-            # Save before re-raising the exception
-            save_data(data, area)
             print(f"There was an error processing this ad - {text} - Error: {e}")  # Re-raise the exception after saving
         finally:
             await browser.close()

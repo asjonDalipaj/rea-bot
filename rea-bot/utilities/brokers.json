@@ -1,6 +1,62 @@
 {
    "brokers":[
       {
+         "name":"Homesearch",
+         "domain":"https://homesearch.nl",
+         "url":"https://homesearch.nl/te-huur",
+         "ad_selector":"div[class=\"card mb-3\"] > div:not(.col-auto text-right)",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
+         "name": "IamExpat",
+         "domain": "https://www.iamexpat.nl",
+         "url": "https://www.iamexpat.nl/housing/rentals/{area}/260-1305",
+         "ad_selector":"li[class=\"row article property\"]",
+         "next_button_selector": "",
+         "cookie_modal_selector": ""
+      },
+      {
+         "name": "YourHouse",
+         "domain": "https://your-house.nl",
+         "url": "https://your-house.nl/woningaanbod/huur/{area}?locationofinterest={area}&moveunavailablelistingstothebottom=true&orderby=10&orderdescending=true",
+         "ad_selector":"article[class*=\"objectcontainer\"]",
+         "next_button_selector": "",
+         "cookie_modal_selector": ""
+      },
+      {
+         "name": "Domica",
+         "domain": "https://www.domica.nl",
+         "url": "https://www.domica.nl/woningaanbod?offer=rent&location={area}",
+         "ad_selector":"a[class*='eazlee_object']",
+         "next_button_selector": "",
+         "cookie_modal_selector": ""
+      },
+      {
+         "name":"Pararius",
+         "domain":"https://www.pararius.nl",
+         "url":"https://www.pararius.nl/huurwoningen/{area}",
+         "ad_selector":"div[class*=\"listing-search-item\"]",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
+         "name":"Jaap",
+         "domain":"https://www.jaap.nl",
+         "url":"https://www.jaap.nl/huurhuizen/{area}",
+         "ad_selector":"app-listing-item",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
+         "name":"Covers Wonen",
+         "domain":"https://coverswonen.nl",
+         "url":"https://coverswonen.nl/en/properties/rent",
+         "ad_selector":"div[class*=\"thumbs-item\"]",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
          "name":"Funda",
          "domain":"https://www.funda.nl",
          "url":"https://www.funda.nl/zoeken/huur?selected_area=%5B%22{area}%22%5D&search_result={page_number}",
@@ -17,14 +73,6 @@
          "cookie_modal_selector":"button[data-coi-action=\"reject_all\"]"
       },
       {
-         "name":"Homesearch",
-         "domain":"https://homesearch.nl",
-         "url":"https://homesearch.nl/te-huur",
-         "ad_selector":"div[class=\"card mb-3\"] > div:not(.col-auto text-right)",
-         "next_button_selector":"",
-         "cookie_modal_selector":""
-      },
-      {
          "name":"Rotvast",
          "domain":"https://www.rotsvast.nl",
          "url":"https://www.rotsvast.nl/woningaanbod/?type=2&searchPattern={area}&office=0",
@@ -34,7 +82,7 @@
       },
       {
          "name":"Vbo",
-         "domain":"vbo.nl",
+         "domain":"https://vbo.nl",
          "url":"https://www.vbo.nl/huurwoningen?q={area}&straal=&huurprijs_van=&huurprijs_tot=",
          "ad_selector":"div[class=\"col-12 col-sm-6 col-lg-4\"]",
          "next_button_selector":"",
