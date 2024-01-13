@@ -33,8 +33,11 @@ def load_jsonl_into_db(filename):
             listing = Listing(**entry)
             db.session.add(listing)
     db.session.commit()
-    
+
 with app.app_context():
+    # Call this function with the path to your JSONL file the first time you run the app
+    db.drop_all()
+
     db.create_all()
     # Call this function with the path to your JSONL file the first time you run the app
     load_jsonl_into_db('./results/results_utrecht.jsonl')
