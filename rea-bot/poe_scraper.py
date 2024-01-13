@@ -60,6 +60,7 @@ async def send_message_with_retry(client, bot, message, chat_id="", max_retries=
         except RuntimeError as e:
             if 'Server Error' in str(e):
                 attempt += 1
+                # Todo - Cancel message for not overloading (?) Poe?
                 print(f"Server Error encountered. Retry attempt {attempt}/{max_retries}.")
                 # Wait for 20 seconds before retrying
                 await asyncio.sleep(20)
