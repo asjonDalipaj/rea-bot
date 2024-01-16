@@ -5,24 +5,36 @@ import re
 import sys
 import hashlib
 import os
+import requests
 from playwright.async_api import async_playwright
 from poe_api_wrapper import PoeApi
 
 data = ''
 
 # Utilities func
-def create_text_hash(text):
-    # Create a hash  of the complete text
-    return hashlib.md5(text.encode('utf-8')).hexdigest()
+def generate_md5_hash(data_dict):
+    # Create a string concatenation of the 'address' and 'price' fields
+    hash_input = data_dict['address'] + data_dict['price']
+    # Encode the string to bytes
+    hash_input_encoded = hash_input.encode('utf-8')
+    # Create an MD5 hash object and update it with the encoded string
+    md5_hash = hashlib.md5()
+    md5_hash.update(hash_input_encoded)
+    # Return the hexadecimal digest of the hash
+    return md5_hash.hexdigest()
 
-def load_existing_ids(file_path):
-    try:
-        with open(file_path, 'r') as file:
-            data = json.load(file)
-            # Create a set of hashes for all existing entries
-            return {item['id'] for item in data}
-    except FileNotFoundError:
-        return set()
+def find_ad_with_href(jsonl_data, href_to_find):
+    """
+    Search for an ad with a specific href in the preloaded JSONL data.
+
+    :param jsonl_data: list of dicts, the preloaded JSONL data
+    :param href_to_find: str, the href value to search for
+    :return: dict or None, the JSON object containing the href or None if not found
+    """
+    for ad in jsonl_data:
+        if ad['ad_link'] == href_to_find:
+            return ad
+    return None
 
 # Cleanse and save data
 def save_data(data, area):
@@ -115,27 +127,40 @@ async def scrape_funda(client, bot, area, url, domain, ad_selector, next_button_
             for ad in ads:
                     text = await ad.inner_text()
                     # print(f"-- Extracting data from {text}")
+
+                    # Taking in consideration every website has an anchor for the ad details/content - find the href for the ad_link
+                    href_regex = re.compile(r'\bhref=["\']([^\'" >]+)')
+                    # Get the outer HTML of the ad element
+                    outer_html = await ad.inner_html()
                     
-                    # Taking in consideration every website has an anchor for the ad details/content
-                    anchor = await ad.query_selector('a')
-                    if not anchor:
-                        print("No found - taking same element")
-                        anchor = ad
+                    # Search for hrefs within the HTML using the regex
+                    matches = href_regex.findall(outer_html)
+                    if matches:
+                        # Just an example to print or process the first found URL
+                        href = matches[0]
 
-                    # Todo - Check if the data is not already saved
-                    # if ad_data['id'] not in existinclassg_ids:
-                    #     data.append(ad_data)  # Add the ad's data to the list
-                    #     existing_ids.add(ad_data['id'])
-                        
-                    if anchor:
-                        href = await anchor.get_attribute('href')
-                        if href:
+                        # Check whether missing domain url
+                        if domain not in href:
+                            href = domain + href
+                        print(f'Found HREF! {href}')
 
-                            #Check whether missing domain url
-                            if domain not in href:
-                                href = domain + href
-                            
-                            print(f"Ad link: {href}")
+                        # Todo 1 - Check if the data is not already saved - to improve through all sites?
+                        # Define any query parameters you want to send
+                        params = {
+                            'ad_link': href
+                        }
+
+                        # Send a GET request with the query parameters
+                        response = requests.get(api_url, params=params)
+
+                        # Check if the request was successful
+                        if response.status_code == 200 and response.json():
+                            # Parse the response JSON into a Python dictionary
+                            ad_response = response.json()
+                            print(f'Found data: {ad_response} - Skipping call to Poe')
+                            continue
+                        else:
+                            ## Call Poe ##
 
                             # Create a new context with a different user agent for each ad
                             new_user_agent = userAgentStrings[random.randint(0, len(userAgentStrings) - 1)]
@@ -166,9 +191,9 @@ async def scrape_funda(client, bot, area, url, domain, ad_selector, next_button_
 
                             Field explenation:
                             address - a string, must be formatted in: street, postal code, city
-                            price - an int, price only, must exclude other chars 
-                            area - an int, area only, must exclude other chars 
-                            bedrooms - an int
+                            price - a string, number only, must exclude other chars 
+                            area - a string, number only, must exclude other chars 
+                            bedrooms - a string, bedrooms number only
                             energy_label - a string
                             broker - a string
 
@@ -179,17 +204,24 @@ async def scrape_funda(client, bot, area, url, domain, ad_selector, next_button_
                             message += text + "\n" + page_text
                             # print(f'message: {message}')
                             response_text = await send_message_with_retry(client, bot, message, 270446664) # chinchilla
+                            # Add a new field with the key 'ad_link' and the value of href
+                            response_data = json.loads(response_text)
+                            id = generate_md5_hash(response_data)
+                            response_data['id'] = id
+                            response_data['ad_link'] = href
+                            updated_response_text = json.dumps(response_data, ensure_ascii=False)
+
                             # response_text = await send_message_with_retry(client, bot, message, 262252582) # a2
                             # print(f'Response text: {response_text}')
 
-                            save_data(response_text, area)
+                            save_data(updated_response_text, area)
                             # print(f"Data - page {page_number}: {data}")
 
                             # Close the ad page and context after processing
                             await ad_page.close()
                             await ad_context.close()
-                        else:
-                            print("No href found! Skipping")
+                    else:
+                        print("No URL found in the HTML of this ad.")
                 
                     # TODO - Handle pagination if required
                     # next_button = await page.query_selector(next_button_selector)
@@ -210,7 +242,7 @@ async def scrape_funda(client, bot, area, url, domain, ad_selector, next_button_
         json.dump(parsed_data, f, ensure_ascii=False, indent=4)
 
     print(f'Saved into results_{filename}.json')
-    print("-- End --")
+    print(f"-- End {broker['name']} --")
 
 
 if __name__ == "__main__":
@@ -242,9 +274,25 @@ if __name__ == "__main__":
             if broker['name'] == broker_name:
                 return broker
         return None
+    
+    def load_jsonl_data():
+        jsonl_data = []
+
+        filename = re.sub(r",", "_", f'./results/results_{area}.json')
+        with open(filename, 'r', encoding='utf-8') as file:
+            for line in file:
+                try:
+                    jsonl_data.append(json.loads(line.strip()))
+                except json.JSONDecodeError as e:
+                    print(f"Error decoding JSON: {e}")
+                return jsonl_data
+            return None
 
     # Usage
     config = load_config('./utilities/brokers.json')
+    jsonl_data = load_jsonl_data()
+    # Define the API endpoint
+    api_url = 'http://localhost:5000/ads'
 
     # Loop through all the brokers in the config
     for broker in config['brokers']:

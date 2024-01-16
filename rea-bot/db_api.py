@@ -7,22 +7,25 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///ads.db'
 db = SQLAlchemy(app)
 
 class Listing(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.String, primary_key=True)
     address = db.Column(db.String, nullable=False)
     price = db.Column(db.String, nullable=False)
     area = db.Column(db.String, nullable=False)
     bedrooms = db.Column(db.String, nullable=False)
     energy_label = db.Column(db.String, nullable=False)
     broker = db.Column(db.String, nullable=False)
+    ad_link = db.Column(db.String, nullable=False)
 
     def to_dict(self):
         return {
+            'id': self.id,
             'address': self.address,
             'price': self.price,
             'area': self.area,
             'bedrooms': self.bedrooms,
             'energy_label': self.energy_label,
-            'broker': self.broker
+            'broker': self.broker,
+            'ad_link': self.ad_link
         }
 
 
@@ -44,15 +47,23 @@ with app.app_context():
 
 @app.route('/ads', methods=['GET'])
 def ads():
+    # Retrieve query parameters
     address_query = request.args.get('address', '')
-    
-    # If no address query is provided, return all listings
-    if not address_query:
-        results = Listing.query.all()
-    else:
-        # If an address query is provided, filter listings by address
-        results = Listing.query.filter(Listing.address.like(f"%{address_query}%")).all()
-    
+    ad_link_query = request.args.get('ad_link', '')
+
+    # Base query
+    query = Listing.query
+
+    # Filter by address if the address parameter is provided
+    if address_query:
+        query = query.filter(Listing.address.like(f"%{address_query}%"))
+
+    # Filter by ad_link if the ad_link parameter is provided
+    if ad_link_query:
+        query = query.filter(Listing.ad_link == ad_link_query)
+
+    # Execute the query and return the results
+    results = query.all()
     return jsonify([listing.to_dict() for listing in results])
 
 if __name__ == '__main__':
