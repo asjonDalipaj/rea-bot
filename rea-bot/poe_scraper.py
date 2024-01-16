@@ -64,22 +64,29 @@ def save_data(data, area):
 
 async def send_message_with_retry(client, bot, message, chat_id="", max_retries=3):
     attempt = 0
+    chunk = None  # Define chunk outside of the try block to make it accessible in the entire function scope
     while attempt < max_retries:
         try:
             for chunk in client.send_message(bot, message, chat_id):
-                pass
-            return chunk["text"]
+                pass  # Assuming send_message is an iterable that returns chunks
+
+            # If send_message is successful and chunk is not None, return the text from the last chunk
+            if chunk is not None:
+                return chunk["text"]
+
         except RuntimeError as e:
             if 'Server Error' in str(e):
                 attempt += 1
-                # Todo 1 - Cancel message for not overloading (?) Poe?
-                client.cancel_message(chunk)
+                # Todo 1 - Totest - Cancel message if chunk exists and not to overload the server
+                if chunk is not None:
+                    client.cancel_message(chunk)
                 print(f"Server Error encountered. Retry attempt {attempt}/{max_retries}.")
                 # Wait for 20 seconds before retrying
                 await asyncio.sleep(20)
             else:
-                raise e
-    print(f"Failed to send message after {max_retries} retries. Skipping {message}")
+                raise e  # Reraise the exception if it's not a Server Error
+
+    print(f"Failed to send message after {max_retries} retries. Skipping message.")
 
 async def scrape_funda(client, bot, area, url, domain, ad_selector, next_button_selector, cookie_modal_selector, page_number=1):
     async with async_playwright() as p:
@@ -120,11 +127,17 @@ async def scrape_funda(client, bot, area, url, domain, ad_selector, next_button_
         try:
             print(f"-- Scraping page {page_number}--")
             # Wait for the page to load fully
-            # Todo 2 - case of Domica loads the page but not yet loading the selectors
             await page.wait_for_load_state()
                         
             # Extract data from the page
             ads = await page.query_selector_all(ad_selector)
+
+            # Todo 2 - case of Domica loads the page but not yet loading the selectors and review Pararius scraping
+            if not ads:
+                print(f'wait_for_selector({ad_selector})')
+                ads = await page.wait_for_selector(ad_selector)
+                print(f'ads found: {ads}')
+
             for ad in ads:
                     text = await ad.inner_text()
                     # print(f"-- Extracting data from {text}")
@@ -234,14 +247,7 @@ async def scrape_funda(client, bot, area, url, domain, ad_selector, next_button_
         finally:
             await browser.close()
 
-    # Write data to JSON file
-    parsed_data = [json.loads(ad) for ad in data]
-
-    filename = re.sub(r",", "_", area)
-    with open(f'./results/results_{filename}.json', 'w', encoding='utf-8') as f:
-        json.dump(parsed_data, f, ensure_ascii=False, indent=4)
-
-    print(f'Saved into results_{filename}.json')
+    print(f'Saved into {filename}')
     print(f"-- End {broker['name']} --")
 
 
@@ -274,23 +280,10 @@ if __name__ == "__main__":
             if broker['name'] == broker_name:
                 return broker
         return None
-    
-    def load_jsonl_data():
-        jsonl_data = []
 
-        filename = re.sub(r",", "_", f'./results/results_{area}.json')
-        with open(filename, 'r', encoding='utf-8') as file:
-            for line in file:
-                try:
-                    jsonl_data.append(json.loads(line.strip()))
-                except json.JSONDecodeError as e:
-                    print(f"Error decoding JSON: {e}")
-                return jsonl_data
-            return None
-
-    # Usage
+    # Config
     config = load_config('./utilities/brokers.json')
-    jsonl_data = load_jsonl_data()
+    filename = re.sub(r",", "_", f'./results/results_{area}.jsonl')
     # Define the API endpoint
     api_url = 'http://localhost:5000/ads'
 
