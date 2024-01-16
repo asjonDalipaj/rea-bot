@@ -7,7 +7,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///ads.db'
 db = SQLAlchemy(app)
 
 class Listing(db.Model):
-    id = db.Column(db.String, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
     address = db.Column(db.String, nullable=False)
     price = db.Column(db.String, nullable=False)
     area = db.Column(db.String, nullable=False)
@@ -18,7 +18,6 @@ class Listing(db.Model):
 
     def to_dict(self):
         return {
-            'id': self.id,
             'address': self.address,
             'price': self.price,
             'area': self.area,

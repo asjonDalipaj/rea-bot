@@ -72,7 +72,8 @@ async def send_message_with_retry(client, bot, message, chat_id="", max_retries=
         except RuntimeError as e:
             if 'Server Error' in str(e):
                 attempt += 1
-                # Todo - Cancel message for not overloading (?) Poe?
+                # Todo 1 - Cancel message for not overloading (?) Poe?
+                client.cancel_message(chunk)
                 print(f"Server Error encountered. Retry attempt {attempt}/{max_retries}.")
                 # Wait for 20 seconds before retrying
                 await asyncio.sleep(20)
@@ -119,7 +120,7 @@ async def scrape_funda(client, bot, area, url, domain, ad_selector, next_button_
         try:
             print(f"-- Scraping page {page_number}--")
             # Wait for the page to load fully
-            # Todo - case of Domica loads the page but not yet loading the selectors
+            # Todo 2 - case of Domica loads the page but not yet loading the selectors
             await page.wait_for_load_state()
                         
             # Extract data from the page
@@ -142,9 +143,9 @@ async def scrape_funda(client, bot, area, url, domain, ad_selector, next_button_
                         # Check whether missing domain url
                         if domain not in href:
                             href = domain + href
-                        print(f'Found HREF! {href}')
+                        print(f'Processing ad - {href}')
 
-                        # Todo 1 - Check if the data is not already saved - to improve through all sites?
+                        # Todo last - to improve through all sites?
                         # Define any query parameters you want to send
                         params = {
                             'ad_link': href
@@ -156,8 +157,7 @@ async def scrape_funda(client, bot, area, url, domain, ad_selector, next_button_
                         # Check if the request was successful
                         if response.status_code == 200 and response.json():
                             # Parse the response JSON into a Python dictionary
-                            ad_response = response.json()
-                            print(f'Found data: {ad_response} - Skipping call to Poe')
+                            print(f'Found data! - Skipping call to Poe')
                             continue
                         else:
                             ## Call Poe ##
@@ -207,7 +207,7 @@ async def scrape_funda(client, bot, area, url, domain, ad_selector, next_button_
                             # Add a new field with the key 'ad_link' and the value of href
                             response_data = json.loads(response_text)
                             id = generate_md5_hash(response_data)
-                            response_data['id'] = id
+                            # response_data['id'] = id
                             response_data['ad_link'] = href
                             updated_response_text = json.dumps(response_data, ensure_ascii=False)
 
@@ -230,7 +230,7 @@ async def scrape_funda(client, bot, area, url, domain, ad_selector, next_button_
                     #     print(f"Another page for {area}")     
                     #     await scrape_funda(area, url, ad_selector, next_button_selector, page_number + 1)
         except Exception as e:
-            print(f"There was an error processing this ad - {text} - Error: {e}")  # Re-raise the exception after saving
+            print(f"There was an error processing this ad - {href} - Error: {e}")  # Re-raise the exception after saving
         finally:
             await browser.close()
 
