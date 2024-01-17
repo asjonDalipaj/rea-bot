@@ -1,6 +1,46 @@
 {
    "brokers":[
       {
+         "name": "roxxle",
+         "domain": "https://roxxle.nl/aanbod",
+         "url": "https://roxxle.nl/aanbod/huurwoningen?zoekopdracht={area}",
+         "ad_selector":"div[class*='object_wrapper']:has(span.label-nieuw))",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
+         "name": "Een hoorn",
+         "domain": "https://www.eenhoornmanagement.nl",
+         "url": "https://www.eenhoornmanagement.nl/nl/aanbod",
+         "ad_selector":"div[class*='card-object']:has(span:has-text('Nieuw'))",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
+         "name": "WVO",
+         "domain": "https://www.wvo.nl",
+         "url": "https://www.wvo.nl/aanbod/woningaanbod/huur/",
+         "ad_selector":"li[class*='al4woning']:not(:has(span.bannerstatusverhuurd))",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
+         "name":"Beumer",
+         "domain":"https://www.beumer.nl",
+         "url":"https://www.beumer.nl/wonen/zoeken/heel-nederland/huur/{area}",
+         "ad_selector":"div[class*='house-col']",
+         "next_button_selector":"a[class*='next']",
+         "cookie_modal_selector":""
+      },
+      {
+         "name":"Beumer",
+         "domain":"https://www.beumer.nl",
+         "url":"https://www.beumer.nl/wonen/zoeken/heel-nederland/huur/{area}",
+         "ad_selector":"div[class*='house-col']",
+         "next_button_selector":"a[class*='next']",
+         "cookie_modal_selector":""
+      },
+      {
          "name":"Homesearch",
          "domain":"https://homesearch.nl",
          "url":"https://homesearch.nl/te-huur",

@@ -6,6 +6,8 @@ import sys
 import hashlib
 import os
 import requests
+from perplexity import Perplexity
+from telethon.sync import TelegramClient
 from playwright.async_api import async_playwright
 from poe_api_wrapper import PoeApi
 
@@ -36,13 +38,24 @@ def find_ad_with_href(jsonl_data, href_to_find):
             return ad
     return None
 
+def cleanse(response_text):
+    # Split the text into lines
+    lines = response_text.splitlines()
+
+    # Ensure there are at least two lines to remove
+    if len(lines) >= 2:
+        # Remove the first and last lines
+        lines = lines[1:-1]
+
+    # Join the remaining lines back into a single string
+    cleaned_text = '\n'.join(lines)
+
+    return cleaned_text
+
 # Cleanse and save data
 def save_data(data, area):
     # Strip whitespace that might be at the start/end of the string
     data = data.strip()
-    
-    # Print the string to make sure it's formatted correctly
-    print(data)
     
     # Define the filename for the results
     filename = f'./results/results_{area}.jsonl'
@@ -62,33 +75,63 @@ def save_data(data, area):
         # Write the JSON data as a single line
         f.write(json.dumps(new_data, ensure_ascii=False) + "\n")
 
-async def send_message_with_retry(client, bot, message, chat_id="", max_retries=3):
+# async def send_message_with_retry(client, bot, message, chat_id="", max_retries=3):
+#     attempt = 0
+#     chunk = None  # Define chunk outside of the try block to make it accessible in the entire function scope
+#     while attempt < max_retries:
+#         try:
+#             for chunk in client.send_message(bot, message, chat_id):
+#                 pass  # Assuming send_message is an iterable that returns chunks
+
+#             # If send_message is successful and chunk is not None, return the text from the last chunk
+#             if chunk is not None:
+#                 return chunk["text"]
+
+#         except RuntimeError as e:
+#             if 'Server Error' in str(e):
+#                 attempt += 1
+#                 # Todo 1 - Totest - Cancel message if chunk exists and not to overload the server
+#                 if chunk is not None:
+#                     client.cancel_message(chunk)
+#                 print(f"Server Error encountered. Retry attempt {attempt}/{max_retries}.")
+#                 # Wait for 20 seconds before retrying
+#                 await asyncio.sleep(20)
+#             else:
+#                 raise e  # Reraise the exception if it's not a Server Error
+
+#     print(f"Failed to send message after {max_retries} retries. Skipping message.")
+
+
+async def send_message_with_retry(message, max_retries=3):
     attempt = 0
-    chunk = None  # Define chunk outside of the try block to make it accessible in the entire function scope
     while attempt < max_retries:
         try:
-            for chunk in client.send_message(bot, message, chat_id):
-                pass  # Assuming send_message is an iterable that returns chunks
-
-            # If send_message is successful and chunk is not None, return the text from the last chunk
-            if chunk is not None:
-                return chunk["text"]
+            print('Running query...')
+            response = None
+            for chunk in perplexity.search(message):
+                response = chunk  # Assuming the last chunk contains the answer
+            
+            # After iterating over the generator, check if the response contains 'answer'
+            if response and 'answer' in response:
+                print(response['answer'])
+                return response['answer']
 
         except RuntimeError as e:
             if 'Server Error' in str(e):
                 attempt += 1
-                # Todo 1 - Totest - Cancel message if chunk exists and not to overload the server
-                if chunk is not None:
-                    client.cancel_message(chunk)
                 print(f"Server Error encountered. Retry attempt {attempt}/{max_retries}.")
-                # Wait for 20 seconds before retrying
+                # Since this is an async function, we still need to wait asynchronously.
                 await asyncio.sleep(20)
             else:
-                raise e  # Reraise the exception if it's not a Server Error
+                raise e
+
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
+            break  # Break on unexpected errors
 
     print(f"Failed to send message after {max_retries} retries. Skipping message.")
 
-async def scrape_funda(client, bot, area, url, domain, ad_selector, next_button_selector, cookie_modal_selector, page_number=1):
+async def scrape_funda(area, url, domain, ad_selector, next_button_selector, cookie_modal_selector, page_number=1):
     async with async_playwright() as p:
 
         browser = await p.chromium.launch(headless=True) 
@@ -170,7 +213,7 @@ async def scrape_funda(client, bot, area, url, domain, ad_selector, next_button_
                         # Check if the request was successful
                         if response.status_code == 200 and response.json():
                             # Parse the response JSON into a Python dictionary
-                            print(f'Found data! - Skipping call to Poe')
+                            print(f'Found data! - Skipping call to AI')
                             continue
                         else:
                             ## Call Poe ##
@@ -216,9 +259,12 @@ async def scrape_funda(client, bot, area, url, domain, ad_selector, next_button_
                             """
                             message += text + "\n" + page_text
                             # print(f'message: {message}')
-                            response_text = await send_message_with_retry(client, bot, message, 270446664) # chinchilla
+                            # response_text = await send_message_with_retry(client, bot, message, 270446664) # chinchilla
+                            response_text = await send_message_with_retry(message) # Perplexity
                             # Add a new field with the key 'ad_link' and the value of href
+                            response_text = cleanse(response_text)
                             response_data = json.loads(response_text)
+                            print(response_data)
                             id = generate_md5_hash(response_data)
                             # response_data['id'] = id
                             response_data['ad_link'] = href
@@ -229,7 +275,28 @@ async def scrape_funda(client, bot, area, url, domain, ad_selector, next_button_
 
                             save_data(updated_response_text, area)
                             # print(f"Data - page {page_number}: {data}")
+                            
+                            # Send notification
+                            
+                            notification_message = """
+                            🏄 Found new ad!
+                            {address} - €{price} p/m - {bedrooms} bedroom(s) - {area} m2
+                            {ad_link}
+                            """
 
+                            format_msg_lines = [line.strip() for line in notification_message.format(
+                                address=response_data['address'],
+                                price=response_data['price'],
+                                bedrooms=response_data['bedrooms'],
+                                area=response_data['area'],
+                                ad_link=response_data['ad_link']
+                            ).splitlines()]
+
+                            # Join the stripped lines back into a single string
+                            format_msg = "\n".join(format_msg_lines)
+
+                            async with TelegramClient(session_file, tg_api_id, tg_api_hash) as tg_client:
+                                await tg_client.send_message(tg_phone_number, format_msg)
                             # Close the ad page and context after processing
                             await ad_page.close()
                             await ad_context.close()
@@ -250,7 +317,6 @@ async def scrape_funda(client, bot, area, url, domain, ad_selector, next_button_
     print(f'Saved into {filename}')
     print(f"-- End {broker['name']} --")
 
-
 if __name__ == "__main__":
     area = None
     if len(sys.argv) > 1 and sys.argv[1] == "-area":
@@ -259,16 +325,11 @@ if __name__ == "__main__":
 
     def setup_connection_to_poe(api_key):
         client = PoeApi(api_key)
-        bot = "chinchilla_instruct"
+        bot = "acouchy"
+        # bot = "chinchilla_instruct"
         # bot = "a2"
         return client, bot
 
-    # Read API key from a file and pass it to the function
-    with open('./utilities/api_key.json', 'r') as file:
-        api_key = json.load(file)["key"]
-        client, bot = setup_connection_to_poe(api_key)
-
-    # Read brokers 
     # Function to load configurations
     def load_config(config_file):
         with open(config_file, 'r') as file:
@@ -282,6 +343,19 @@ if __name__ == "__main__":
         return None
 
     # Config
+    # Read API key from a file and pass it to the function
+    api_info = load_config('./utilities/api_key.json')
+    api_key = api_info["key"]
+    # client, bot = setup_connection_to_poe(api_key) Poe
+    # Replacing with Perplexity
+    perplexity = Perplexity()
+        
+    # Setup Telegram
+    tg_api_id = api_info["tg_api_id"]
+    tg_api_hash = api_info["tg_api_hash"]
+    tg_phone_number = api_info["tg_phone_number"]
+    session_file = 'session'
+    
     config = load_config('./utilities/brokers.json')
     filename = re.sub(r",", "_", f'./results/results_{area}.jsonl')
     # Define the API endpoint
@@ -298,6 +372,10 @@ if __name__ == "__main__":
         
         try:
             # Call scrape function for the current broker
-            asyncio.run(scrape_funda(client, bot, area, url, domain, ad_selector, next_button_selector, cookie_modal_selector))
+            # asyncio.run(scrape_funda(client, bot, area, url, domain, ad_selector, next_button_selector, cookie_modal_selector)) Poe
+            asyncio.run(scrape_funda(area, url, domain, ad_selector, next_button_selector, cookie_modal_selector))
         except Exception as e:
             print(f"An error occurred while scraping {broker['name']} for area {area}: {e}")
+    
+    # Close perplexity connection
+    perplexity.close()
