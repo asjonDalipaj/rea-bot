@@ -11,7 +11,6 @@ from perplexity import Perplexity
 from telegram import Bot
 from telethon.sync import TelegramClient
 from playwright.async_api import async_playwright
-from poe_api_wrapper import PoeApi
 
 data = ''
 
@@ -182,7 +181,7 @@ async def scrape_funda(url, domain, ad_selector, next_button_selector, cookie_mo
 
                             # Delay for not overcrowding the servers
                             await asyncio.sleep(5)
-                            ## Call Poe ##
+                            ## Call AI ##
 
                             # Create a new context with a different user agent for each ad
                             new_user_agent = userAgentStrings[random.randint(0, len(userAgentStrings) - 1)]
@@ -298,13 +297,6 @@ if __name__ == "__main__":
     area = args.area
     max_price = args.max_price
 
-    def setup_connection_to_poe(api_key):
-        client = PoeApi(api_key)
-        bot = "acouchy"
-        # bot = "chinchilla_instruct"
-        # bot = "a2"
-        return client, bot
-
     # Function to load configurations
     def load_config(config_file):
         with open(config_file, 'r') as file:
@@ -321,7 +313,6 @@ if __name__ == "__main__":
     # Read API key from a file and pass it to the function
     api_info = load_config('./utilities/api_key.json')
     api_key = api_info["key"]
-    # client, bot = setup_connection_to_poe(api_key) Poe
     # Replacing with Perplexity
     perplexity = Perplexity()
         
@@ -350,7 +341,6 @@ if __name__ == "__main__":
         
         try:
             # Call scrape function for the current broker
-            # asyncio.run(scrape_funda(client, bot, area, url, domain, ad_selector, next_button_selector, cookie_modal_selector)) Poe
             asyncio.run(scrape_funda(url, domain, ad_selector, next_button_selector, cookie_modal_selector))
         except Exception as e:
             print(f"An error occurred while scraping {broker['name']} in {area}: {e}")
