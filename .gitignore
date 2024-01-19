@@ -145,8 +145,11 @@ rea-bot/*session*
 logfile*
 job*
 
-# Test files
-rea-bot/poe-wrapper-test*
-rea-bot/funda_scraper.py
+# Imgs
+img/
+
+# Censored utilities
 rea-bot/utilities/api_key.json
-rea-bot/perplex-test*
+
+# Test files
+rea-bot/*test*
