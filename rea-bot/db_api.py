@@ -13,7 +13,6 @@ class Listing(db.Model):
     area = db.Column(db.String, nullable=False)
     bedrooms = db.Column(db.String, nullable=False)
     energy_label = db.Column(db.String, nullable=False)
-    broker = db.Column(db.String, nullable=False)
     ad_link = db.Column(db.String, nullable=False)
 
     def to_dict(self):
@@ -23,7 +22,6 @@ class Listing(db.Model):
             'area': self.area,
             'bedrooms': self.bedrooms,
             'energy_label': self.energy_label,
-            'broker': self.broker,
             'ad_link': self.ad_link
         }
 

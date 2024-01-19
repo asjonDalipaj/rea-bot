@@ -1,6 +1,14 @@
 {
    "brokers":[
       {
+         "name": "Start Housing",
+         "domain": "https://www.starthousing.nl",
+         "url": "https://www.starthousing.nl/woningaanbod/huur/{area}?locationofinterest={area}&moveunavailablelistingstothebottom=true&pricerange.maxprice={max_price}",
+         "ad_selector":"div.listgal:has(span.new_forrent)",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
          "name": "Verkoopmakelaarbas",
          "domain": "https://verkoopmakelaarbas.nl",
          "url": "https://verkoopmakelaarbas.nl/huurwoningen/",

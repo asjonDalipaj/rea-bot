@@ -137,7 +137,7 @@ async def scrape_funda(url, domain, ad_selector, next_button_selector, cookie_mo
             # Extract data from the page
             ads = await page.query_selector_all(ad_selector)
 
-            # Todo 2 - case of Domica loads the page but not yet loading the selectors and review Pararius scraping
+            # Todo 1 - case of Domica loads the page but not yet loading the selectors and review Pararius scraping
             if not ads:
                 print(f'wait_for_selector({ad_selector})')
                 ads = await page.wait_for_selector(ad_selector)
@@ -206,8 +206,7 @@ async def scrape_funda(url, domain, ad_selector, next_button_selector, cookie_mo
                                 "price":"",
                                 "area":"",
                                 "bedrooms":"",
-                                "energy_label":"",
-                                "broker":""
+                                "energy_label":""
                             }
 
                             Format of the fields:
@@ -216,7 +215,6 @@ async def scrape_funda(url, domain, ad_selector, next_button_selector, cookie_mo
                             area - numbers only, must exclude other chars 
                             bedrooms - a string 
                             energy_label - a string
-                            broker - a string
 
                             Note: Limit responses to valid JSON, with no explanatory text. Never truncate the JSON with an ellipsis. Always srurround the values with double quotes and escape quotes with \\. Always omit trailing commas. 
 
@@ -270,7 +268,7 @@ async def scrape_funda(url, domain, ad_selector, next_button_selector, cookie_mo
                     else:
                         print("No URL found in the HTML of this ad.")
                 
-                    # TODO - Handle pagination if required
+                    # TODO 2 - Handle pagination if required
                     # next_button = await page.query_selector(next_button_selector)
                     # print("Next Page btn:", next_button)
                     # if next_button:
