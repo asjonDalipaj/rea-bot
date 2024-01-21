@@ -1,6 +1,14 @@
 {
    "brokers":[
       {
+         "name": "EU-Makelaardij",
+         "domain": "https://www.eu-makelaardij.com/",
+         "url": "https://www.eu-makelaardij.com/woningaanbod?status=rent&city={area}&max_price={max_price}",
+         "ad_selector":"div[class*='media']:not(:has(span:has-text('Verhuurd')))",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
          "name": "Start Housing",
          "domain": "https://www.starthousing.nl",
          "url": "https://www.starthousing.nl/woningaanbod/huur/{area}?locationofinterest={area}&moveunavailablelistingstothebottom=true&pricerange.maxprice={max_price}",
@@ -131,7 +139,7 @@
       {
          "name":"Pararius",
          "domain":"https://www.pararius.nl",
-         "url":"https://www.pararius.nl/huurwoningen/{area}",
+         "url":"https://www.pararius.nl/huurwoningen/{area}/0-{max_price}",
          "ad_selector":"div[class*=\"listing-search-item\"]",
          "next_button_selector":"",
          "cookie_modal_selector":""
@@ -147,7 +155,7 @@
       {
          "name": "WVO",
          "domain": "https://www.wvo.nl",
-         "url": "https://www.wvo.nl/aanbod/woningaanbod/huur/",
+         "url": "https://www.wvo.nl/aanbod/woningaanbod/-{max_price}/huur/",
          "ad_selector":"li[class*='al4woning']:not(:has(span.bannerstatusverhuurd))",
          "next_button_selector":"",
          "cookie_modal_selector":""

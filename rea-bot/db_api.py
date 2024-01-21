@@ -1,6 +1,11 @@
+from logger import setup_logger
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 import json
+
+
+# Set up loggers for db_api and ai_scraper
+db_api_logger = setup_logger('db_api_logger', './logs/api_logfile.log')
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///ads.db'
@@ -41,6 +46,8 @@ with app.app_context():
     db.create_all()
     # Call this function with the path to your JSONL file the first time you run the app
     load_jsonl_into_db('./results/results_utrecht.jsonl')
+
+    db_api_logger.info('DB API started.')
 
 @app.route('/ads', methods=['GET'])
 def ads():

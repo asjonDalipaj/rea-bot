@@ -1,3 +1,4 @@
+from logger import setup_logger
 import asyncio
 import random
 import json
@@ -9,8 +10,9 @@ import requests
 import argparse
 from perplexity import Perplexity
 from telegram import Bot
-from telethon.sync import TelegramClient
 from playwright.async_api import async_playwright
+
+scraper_logger = setup_logger('scraper_logger', './logs/scraper_logfile.log')
 
 data = ''
 
@@ -56,7 +58,7 @@ def save_data(data, area):
         new_data = json.loads(data)
     except json.JSONDecodeError:
         # If it fails, raise an error
-        raise ValueError("New data is not valid JSON and cannot be appended")
+        scraper_logger.info("New data is not valid JSON and cannot be appended")
     
     # Open the file in append mode and write the new JSON object
     with open(filename, 'a', encoding='utf-8') as f:
@@ -67,31 +69,31 @@ async def send_message_with_retry(message, max_retries=3):
     attempt = 0
     while attempt < max_retries:
         try:
-            print('Running query...')
+            scraper_logger.info('Running query...')
             response = None
             for chunk in perplexity.search(message):
                 response = chunk  # Assuming the last chunk contains the answer
             
             # After iterating over the generator, check if the response contains 'answer'
             if response and 'answer' in response:
-                print(response['answer'])
+                scraper_logger.info(response['answer'])
                 return response['answer']
 
         except RuntimeError as e:
             if 'Server Error' in str(e):
                 attempt += 1
-                print(f"Server Error encountered. Retry attempt {attempt}/{max_retries}.")
+                scraper_logger.info(f"Server Error encountered. Retry attempt {attempt}/{max_retries}.")
                 # Since this is an async function, we still need to wait asynchronously.
                 await asyncio.sleep(20)
             else:
                 raise e
 
         except Exception as e:
-            print(f"An unexpected error occurred: {e}")
-            traceback.print_exc()  
+            scraper_logger.info(f"An unexpected error occurred: {e}")
+            scraper_logger.info(traceback.print_exc())  
             break  # Break on unexpected errors
 
-    print(f"Failed to send message after {max_retries} retries. Skipping message.")
+    scraper_logger.info(f"Failed to send message after {max_retries} retries. Skipping message.")
 
 async def scrape_funda(url, domain, ad_selector, next_button_selector, cookie_modal_selector, page_number=1):
     async with async_playwright() as p:
@@ -127,10 +129,10 @@ async def scrape_funda(url, domain, ad_selector, next_button_selector, cookie_mo
             eval_func = eval_func.format(cookie_modal_selector=cookie_modal_selector)
             await page.evaluate(eval_func)
         else:
-            print("No cookie modal defined in config, continuing")
+            scraper_logger.info("No cookie modal defined in config, continuing")
 
         try:
-            print(f"-- Scraping page {page_number}--")
+            scraper_logger.info(f"-- Scraping page {page_number}--")
             # Wait for the page to load fully
             await page.wait_for_load_state()
 
@@ -139,9 +141,9 @@ async def scrape_funda(url, domain, ad_selector, next_button_selector, cookie_mo
 
             # Todo 1 - case of Domica loads the page but not yet loading the selectors and review Pararius scraping
             if not ads:
-                print(f'wait_for_selector({ad_selector})')
+                scraper_logger.info(f'wait_for_selector({ad_selector})')
                 ads = await page.wait_for_selector(ad_selector)
-
+            
             for ad in ads:
                     text = await ad.inner_text()
 
@@ -161,7 +163,7 @@ async def scrape_funda(url, domain, ad_selector, next_button_selector, cookie_mo
                         # Check whether missing domain url
                         if domain not in href:
                             href = domain + href
-                        print(f'Processing ad - {href}')
+                        scraper_logger.info(f'Processing ad - {href}')
 
                         # Todo last - to improve through all sites?
                         # Define any query parameters you want to send
@@ -175,7 +177,7 @@ async def scrape_funda(url, domain, ad_selector, next_button_selector, cookie_mo
                         # Check if the request was successful
                         if response.status_code == 200 and response.json():
                             # Parse the response JSON into a Python dictionary
-                            print(f'Found data! - Skipping call to AI')
+                            scraper_logger.info(f'Found data! - Skipping call to AI')
                             continue
                         else:
 
@@ -197,7 +199,7 @@ async def scrape_funda(url, domain, ad_selector, next_button_selector, cookie_mo
                             # from other boxes present in the page rather the description only
                             page_text = await ad_page.inner_text('body')
 
-                            # print(f'single ad: {text}')
+                            # scraper_logger.info(f'single ad: {text}')
                             message = """
                             From this text, cleanse it and convert the information (if there) to a JSON object matching this schema: 
 
@@ -221,25 +223,25 @@ async def scrape_funda(url, domain, ad_selector, next_button_selector, cookie_mo
                             Text:
                             """
                             message += text + "\n" + page_text
-                            # print(f'message: {message}')
+                            # scraper_logger.info(f'message: {message}')
                             # response_text = await send_message_with_retry(client, bot, message, 270446664) # chinchilla
                             response_text = await send_message_with_retry(message) # Perplexity
                             
                             # Looks like cleanse is not needed anymore? :D
                             response_text = cleanse(response_text)
                             response_data = json.loads(response_text)
-                            id = generate_md5_hash(response_data)
+                            # id = generate_md5_hash(response_data)
                             # response_data['id'] = id
                             # Add a new field with the key 'ad_link' and the value of href
                             response_data['ad_link'] = href
                             updated_response_text = json.dumps(response_data, ensure_ascii=False)
-                            print(updated_response_text)
+                            scraper_logger.info(updated_response_text)
 
                             # response_text = await send_message_with_retry(client, bot, message, 262252582) # a2
-                            # print(f'Response text: {response_text}')
+                            # scraper_logger.info(f'Response text: {response_text}')
 
                             save_data(updated_response_text, area)
-                            # print(f"Data - page {page_number}: {data}")
+                            # scraper_logger.info(f"Data - page {page_number}: {data}")
                             
                             # Send notification
                             
@@ -266,22 +268,28 @@ async def scrape_funda(url, domain, ad_selector, next_button_selector, cookie_mo
                             await ad_page.close()
                             await ad_context.close()
                     else:
-                        print("No URL found in the HTML of this ad.")
-                
+                        scraper_logger.info("No URL found in the HTML of this ad.")
+                    
                     # TODO 2 - Handle pagination if required
                     # next_button = await page.query_selector(next_button_selector)
-                    # print("Next Page btn:", next_button)
+                    # scraper_logger.info("Next Page btn:", next_button)
                     # if next_button:
-                    #     print(f"Another page for {area}")     
+                    #     scraper_logger.info(f"Another page for {area}")     
                     #     await scrape_funda(area, url, ad_selector, next_button_selector, page_number + 1)
         except Exception as e:
-            print(f"There was an error processing this ad - {href} - Error: {e}")  # Re-raise the exception after saving
-            traceback.print_exc()  
+            if 'Timeout' in str(e):
+                scraper_logger.info(f"Timeout reaching {broker['name']}, or simply, no ads to scrape - skipping!")
+                scraper_logger.info(f"-- End {broker['name']} --")
+                return
+            else:
+                if href:
+                    scraper_logger.info(f"There was an error processing this ad - {href}")  # Re-raise the exception after saving
+            scraper_logger.info(traceback.print_exc())
         finally:
             await browser.close()
 
-    print(f'Saved into {filename}')
-    print(f"-- End {broker['name']} --")
+    scraper_logger.info(f'Saved into {filename}')
+    scraper_logger.info(f"-- End {broker['name']} --")
 
 if __name__ == "__main__":
     # Parse arguments
@@ -328,21 +336,23 @@ if __name__ == "__main__":
     # Define the API endpoint
     api_url = 'http://localhost:5000/ads'
 
+    scraper_logger.info('### Scraper started ###')
+
     # Loop through all the brokers in the config
     for broker in config['brokers']:
-        print(f"Scraping {broker['name']}")
+        scraper_logger.info(f"Scraping {broker['name']}")
         domain = broker['domain']
         url = broker['url']
         ad_selector = broker['ad_selector']
         next_button_selector = broker['next_button_selector']
         cookie_modal_selector = broker['cookie_modal_selector']
-        
+
         try:
             # Call scrape function for the current broker
             asyncio.run(scrape_funda(url, domain, ad_selector, next_button_selector, cookie_modal_selector))
         except Exception as e:
-            print(f"An error occurred while scraping {broker['name']} in {area}: {e}")
-            traceback.print_exc()
+            scraper_logger.info(f"An error occurred while scraping {broker['name']} in {area}: {e}")
+            scraper_logger.info(traceback.print_exc())
     
     # Close perplexity connection
     perplexity.close()
