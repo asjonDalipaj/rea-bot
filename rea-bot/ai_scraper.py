@@ -137,7 +137,7 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
             # Extract data from the page
             ads = await page.query_selector_all(ad_selector)
 
-            await page.screenshot(path='screenshot.png')
+            # await page.screenshot(path='screenshot.png')
 
             # Todo 1 - case of EU-Makelaardij loads the page but not yet loading the selectors and review Pararius scraping
             if not ads:
@@ -151,8 +151,8 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                     href_regex = re.compile(r'\bhref=["\']([^\'" >]+)')
                     # Get the outer HTML of the ad element
                     outer_html = await ad.inner_html()
-                    with open ('outer_html.html', 'w') as file_html:
-                        file_html.write(outer_html)
+                    # with open ('outer_html.html', 'w') as file_html:
+                    #     file_html.write(outer_html)
                     
                     # Search for hrefs within the HTML using the regex
                     matches = href_regex.findall(outer_html)
