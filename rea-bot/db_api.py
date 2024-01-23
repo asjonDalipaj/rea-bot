@@ -1,30 +1,32 @@
+from logger import setup_logger
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 import json
+
+
+# Set up loggers for db_api and ai_scraper
+db_api_logger = setup_logger('db_api_logger', './logs/api_logfile.log')
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///ads.db'
 db = SQLAlchemy(app)
 
 class Listing(db.Model):
-    id = db.Column(db.String, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
     address = db.Column(db.String, nullable=False)
     price = db.Column(db.String, nullable=False)
     area = db.Column(db.String, nullable=False)
     bedrooms = db.Column(db.String, nullable=False)
     energy_label = db.Column(db.String, nullable=False)
-    broker = db.Column(db.String, nullable=False)
     ad_link = db.Column(db.String, nullable=False)
 
     def to_dict(self):
         return {
-            'id': self.id,
             'address': self.address,
             'price': self.price,
             'area': self.area,
             'bedrooms': self.bedrooms,
             'energy_label': self.energy_label,
-            'broker': self.broker,
             'ad_link': self.ad_link
         }
 
@@ -44,6 +46,8 @@ with app.app_context():
     db.create_all()
     # Call this function with the path to your JSONL file the first time you run the app
     load_jsonl_into_db('./results/results_utrecht.jsonl')
+
+    db_api_logger.info('DB API started.')
 
 @app.route('/ads', methods=['GET'])
 def ads():

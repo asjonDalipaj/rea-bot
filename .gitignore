@@ -138,7 +138,18 @@ cython_debug/
 # Results
 rea-bot/results/
 
-# Test files
-rea-bot/poe-wrapper-test*
-rea-bot/funda_scraper.py
+# Sessions
+rea-bot/*session*
+
+# Jobs
+logfile*
+job*
+
+# Imgs
+img/
+
+# Censored utilities
 rea-bot/utilities/api_key.json
+
+# Test files
+rea-bot/*test*
