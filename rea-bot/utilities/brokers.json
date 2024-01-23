@@ -4,9 +4,25 @@
          "name": "EU-Makelaardij",
          "domain": "https://www.eu-makelaardij.com/",
          "url": "https://www.eu-makelaardij.com/woningaanbod?status=rent&city={area}&max_price={max_price}",
-         "ad_selector":"div[class*='media']:not(:has(span:has-text('Verhuurd')))",
+         "ad_selector":"div.listing-house:not(:has(span:has-text('Verhuurd')))",
          "next_button_selector":"",
          "cookie_modal_selector":""
+      },
+      {
+         "name": "Vanderhuizen",
+         "domain": "https://www.vanderhuizen.com",
+         "url": "https://www.vanderhuizen.com/huurwoningen?city%5B%5D={area}-1&type%5B%5D=kamer&price_from=0&price_to={max_price}&sort=",
+         "ad_selector":"article.Block:has(figcaption:has-text('Nieuw'))",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
+         "name":"Huurportaal",
+         "domain":"https://huurportaal.nl",
+         "url":"https://huurportaal.nl/en/for-rent?location={area}&order=desc&rent=0-{max_price}",
+         "ad_selector":"div[class=\"col-sm-4 col-md-4 col-xs-12 col-lg-3\"] > div:not(.search-agent-signup-box) ",
+         "next_button_selector":"button[id=\"load-more\"]",
+         "cookie_modal_selector":"button[data-coi-action=\"reject_all\"]"
       },
       {
          "name": "Start Housing",
@@ -20,7 +36,7 @@
          "name": "Verkoopmakelaarbas",
          "domain": "https://verkoopmakelaarbas.nl",
          "url": "https://verkoopmakelaarbas.nl/huurwoningen/",
-         "ad_selector":"div.aw-card",
+         "ad_selector":"div.aw-card:has(span:has-text('Te huur'))",
          "next_button_selector":"",
          "cookie_modal_selector":""
       },
@@ -83,7 +99,7 @@
       {
          "name":"Rotvast",
          "domain":"https://www.rotsvast.nl",
-         "url":"https://www.rotsvast.nl/woningaanbod/?type=2&searchPattern={area}&office=0",
+         "url":"https://www.rotsvast.nl/woningaanbod/?type=2&searchPattern={area}&office=0&maximumPrice[2]={max_price}",
          "ad_selector":"div[class*=\"clickable-parent\"]",
          "next_button_selector":"",
          "cookie_modal_selector":""
@@ -97,18 +113,10 @@
          "cookie_modal_selector": ""
       },
       {
-         "name":"Huurportaal",
-         "domain":"https://huurportaal.nl",
-         "url":"https://huurportaal.nl/en/for-rent?location={area}&order=desc&rent=0-{max_price}",
-         "ad_selector":"div[class=\"col-sm-4 col-md-4 col-xs-12 col-lg-3\"] > div:not(.search-agent-signup-box) ",
-         "next_button_selector":"button[id=\"load-more\"]",
-         "cookie_modal_selector":"button[data-coi-action=\"reject_all\"]"
-      },
-      {
          "name":"Vbo",
          "domain":"https://www.vbo.nl",
          "url":"https://www.vbo.nl/huurwoningen?q={area}&straal=&huurprijs_van=&huurprijs_tot={max_price}",
-         "ad_selector":"div[class=\"col-12 col-sm-6 col-lg-4\"]",
+         "ad_selector":"div[class=\"col-12 col-sm-6 col-lg-4\"]:has(div:has-text('nieuw'))",
          "next_button_selector":"",
          "cookie_modal_selector":"div[id=\"cookiewall\"]"
       },
@@ -124,7 +132,7 @@
          "name":"Covers Wonen",
          "domain":"https://coverswonen.nl",
          "url":"https://coverswonen.nl/en/properties/rent",
-         "ad_selector":"div[class*=\"thumbs-item\"]",
+         "ad_selector":"div[class=\"thumbs-item thumbs-item-vertical\"]",
          "next_button_selector":"",
          "cookie_modal_selector":""
       },

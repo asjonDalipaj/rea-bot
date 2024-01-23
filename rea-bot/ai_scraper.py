@@ -14,8 +14,6 @@ from playwright.async_api import async_playwright
 
 scraper_logger = setup_logger('scraper_logger', './logs/scraper_logfile.log')
 
-data = ''
-
 # Utilities func
 def generate_md5_hash(data_dict):
     # Create a string concatenation of the 'address' and 'price' fields
@@ -90,12 +88,12 @@ async def send_message_with_retry(message, max_retries=3):
 
         except Exception as e:
             scraper_logger.info(f"An unexpected error occurred: {e}")
-            scraper_logger.info(traceback.print_exc())  
+            scraper_logger.info(traceback.format_exc())
             break  # Break on unexpected errors
 
     scraper_logger.info(f"Failed to send message after {max_retries} retries. Skipping message.")
 
-async def scrape_funda(url, domain, ad_selector, next_button_selector, cookie_modal_selector, page_number=1):
+async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_selector, page_number=1):
     async with async_playwright() as p:
 
         browser = await p.chromium.launch(headless=True) 
@@ -139,7 +137,9 @@ async def scrape_funda(url, domain, ad_selector, next_button_selector, cookie_mo
             # Extract data from the page
             ads = await page.query_selector_all(ad_selector)
 
-            # Todo 1 - case of Domica loads the page but not yet loading the selectors and review Pararius scraping
+            await page.screenshot(path='screenshot.png')
+
+            # Todo 1 - case of EU-Makelaardij loads the page but not yet loading the selectors and review Pararius scraping
             if not ads:
                 scraper_logger.info(f'wait_for_selector({ad_selector})')
                 ads = await page.wait_for_selector(ad_selector)
@@ -151,8 +151,8 @@ async def scrape_funda(url, domain, ad_selector, next_button_selector, cookie_mo
                     href_regex = re.compile(r'\bhref=["\']([^\'" >]+)')
                     # Get the outer HTML of the ad element
                     outer_html = await ad.inner_html()
-                    # with open ('outer_html.html', 'w') as file_html:
-                    #     file_html.write(outer_html)
+                    with open ('outer_html.html', 'w') as file_html:
+                        file_html.write(outer_html)
                     
                     # Search for hrefs within the HTML using the regex
                     matches = href_regex.findall(outer_html)
@@ -182,7 +182,7 @@ async def scrape_funda(url, domain, ad_selector, next_button_selector, cookie_mo
                         else:
 
                             # Delay for not overcrowding the servers
-                            await asyncio.sleep(5)
+                            await asyncio.sleep(10)
                             ## Call AI ##
 
                             # Create a new context with a different user agent for each ad
@@ -247,7 +247,7 @@ async def scrape_funda(url, domain, ad_selector, next_button_selector, cookie_mo
                             
                             notification_message = """
                             🏄 Found new ad!
-                            {address} - {price} p/m - {bedrooms} bedroom(s) - {area} m2 - E/L: {energy_label}
+                            {address} - € {price} p/m - {bedrooms} bedroom(s) - {area} m2 - E/L: {energy_label}
                             {ad_link}
                             """
 
@@ -275,16 +275,15 @@ async def scrape_funda(url, domain, ad_selector, next_button_selector, cookie_mo
                     # scraper_logger.info("Next Page btn:", next_button)
                     # if next_button:
                     #     scraper_logger.info(f"Another page for {area}")     
-                    #     await scrape_funda(area, url, ad_selector, next_button_selector, page_number + 1)
+                    #     await scrape(area, url, ad_selector, next_button_selector, page_number + 1)
         except Exception as e:
             if 'Timeout' in str(e):
                 scraper_logger.info(f"Timeout reaching {broker['name']}, or simply, no ads to scrape - skipping!")
                 scraper_logger.info(f"-- End {broker['name']} --")
-                return
             else:
                 if href:
                     scraper_logger.info(f"There was an error processing this ad - {href}")  # Re-raise the exception after saving
-            scraper_logger.info(traceback.print_exc())
+            scraper_logger.info(traceback.format_exc())
         finally:
             await browser.close()
 
@@ -308,13 +307,6 @@ if __name__ == "__main__":
         with open(config_file, 'r') as file:
             return json.load(file)
 
-    # Function to get broker info
-    def get_broker_info(broker_name, config):
-        for broker in config.get('brokers', []):
-            if broker['name'] == broker_name:
-                return broker
-        return None
-
     # Config
     # Read API key from a file and pass it to the function
     api_info = load_config('./utilities/api_key.json')
@@ -329,6 +321,7 @@ if __name__ == "__main__":
 
     tg_bot_hash = api_info["tg_bot_hash"]
     # session_file = 'session'
+
     tg_bot = Bot(token=tg_bot_hash)
     
     config = load_config('./utilities/brokers.json')
@@ -337,6 +330,9 @@ if __name__ == "__main__":
     api_url = 'http://localhost:5000/ads'
 
     scraper_logger.info('### Scraper started ###')
+
+    # Setup your asyncio event loop before the loop
+    loop = asyncio.get_event_loop()
 
     # Loop through all the brokers in the config
     for broker in config['brokers']:
@@ -347,12 +343,17 @@ if __name__ == "__main__":
         next_button_selector = broker['next_button_selector']
         cookie_modal_selector = broker['cookie_modal_selector']
 
+        # Call scrape function for the current broker
+        # Use the event loop you set up earlier
+        coroutine = scrape(url, domain, ad_selector, next_button_selector, cookie_modal_selector)
         try:
-            # Call scrape function for the current broker
-            asyncio.run(scrape_funda(url, domain, ad_selector, next_button_selector, cookie_modal_selector))
+            loop.run_until_complete(coroutine)
         except Exception as e:
             scraper_logger.info(f"An error occurred while scraping {broker['name']} in {area}: {e}")
-            scraper_logger.info(traceback.print_exc())
-    
+            scraper_logger.info(traceback.format_exc())
+
+    # Close the event loop after all tasks are done
+    loop.close()
+
     # Close perplexity connection
     perplexity.close()
