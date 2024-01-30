@@ -1,6 +1,14 @@
 {
    "brokers":[
       {
+         "name": "Kamernet",
+         "domain": "https://kamernet.nl",
+         "url": "https://kamernet.nl/en/for-rent/rooms-{area}?radius=5&minSize=13&maxRent={max_price}&listingTypes=2%2C4%2C8%2C1&searchview=1",
+         "ad_selector":"a.ListingCard_root__xVYYt",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
          "name": "VGW group",
          "domain": "https://vgwgroup.nl/",
          "url": "https://vgwgroup.nl/en-gb/residential-listings/rent/type-apartment,house?pricerange.maxprice={max_price}&pricerange.minprice=400",
@@ -172,7 +180,7 @@
          "name":"Pararius",
          "domain":"https://www.pararius.nl",
          "url":"https://www.pararius.nl/huurwoningen/{area}/0-{max_price}",
-         "ad_selector":"div.listing-search-item--for-rent",
+         "ad_selector":"li.search-list__item--listing",
          "next_button_selector":"",
          "cookie_modal_selector":""
       },

@@ -40,16 +40,10 @@ def cleanse(response_text):
 
     return cleaned_text
 
-# Cleanse and save data
-def save_data(data, area):
+# Cleanse to DB
+def save_data(data):
     # Strip whitespace that might be at the start/end of the string
     data = data.strip()
-    
-    # Define the filename for the results
-    filename = f'./results/results_{area}.jsonl'
-    
-    # Make sure the directory exists
-    os.makedirs(os.path.dirname(filename), exist_ok=True)
     
     try:
         # Try to parse the string into JSON
@@ -58,10 +52,13 @@ def save_data(data, area):
         # If it fails, raise an error
         scraper_logger.info("New data is not valid JSON and cannot be appended")
     
-    # Open the file in append mode and write the new JSON object
-    with open(filename, 'a', encoding='utf-8') as f:
-        # Write the JSON data as a single line
-        f.write(json.dumps(new_data, ensure_ascii=False) + "\n")
+    # Make a POST request to the insert endpoint
+    response = requests.post(api_url, json=new_data)
+
+    if response.status_code == 201:
+        scraper_logger.info("Listing added successfully")
+    else:
+        scraper_logger.error("Failed to add listing", response.json())
 
 async def send_message_with_retry(message, max_retries=3):
     attempt = 0
@@ -77,7 +74,7 @@ async def send_message_with_retry(message, max_retries=3):
                 scraper_logger.info(response['answer'])
                 return response['answer']
 
-        except RuntimeError as e:
+        except e:
             if 'Server Error' in str(e):
                 attempt += 1
                 scraper_logger.info(f"Server Error encountered. Retry attempt {attempt}/{max_retries}.")
@@ -135,11 +132,20 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
             scraper_logger.info(f"-- Scraping page {page_number}--")
             # Wait for the page to load fully
 
+            # if broker['name'] == 'Vbo':
+            #     html_broker = await page.inner_html('body')
+    
+            #     with open ('./debug/html_' + broker['name'] + '.html', 'w') as file_html:
+            #         file_html.write(html_broker)
+            #     await page.screenshot(path='./debug/screenshot_' + broker['name'] + '.png')
+
             # Todo 1 - review Pararius scraping - Wait for the page to load fully. 10 seconds should be enough
             await page.wait_for_load_state()
 
             # Extract data from the page
+            # html_broker = await page.inner_html('body')
             ads = await page.query_selector_all(ad_selector)
+            
             href = None
             
             if not ads:
@@ -147,18 +153,13 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                 await page.wait_for_selector(ad_selector)
                 ads = await page.query_selector_all(ad_selector)
             
-            # html_broker = await page.inner_html('body')
-            # with open ('./debug/html_' + broker['name'] + '.html', 'w') as file_html:
-            #     file_html.write(html_broker)
-            # await page.screenshot(path='./debug/screenshot_' + broker['name'] + '.png')
-            
             for ad in ads:
                     text = await ad.inner_text()
 
                     # Taking in consideration every website has an anchor for the ad details/content - find the href for the ad_link
                     href_regex = re.compile(r'\bhref=["\']([^\'" >]+)')
                     # Get the outer HTML of the ad element
-                    outer_html = await ad.inner_html()
+                    outer_html = await page.evaluate('(element) => element.outerHTML', ad)
                     # with open ('outer_html.html', 'w') as file_html:
                     #     file_html.write(outer_html)
                     
@@ -250,7 +251,7 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                             # response_text = await send_message_with_retry(client, bot, message, 262252582) # a2
                             # scraper_logger.info(f'Response text: {response_text}')
 
-                            save_data(updated_response_text, area)
+                            save_data(updated_response_text)
                             # scraper_logger.info(f"Data - page {page_number}: {data}")
                             
                             # Send notification

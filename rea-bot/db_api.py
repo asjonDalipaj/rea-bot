@@ -42,8 +42,6 @@ def load_jsonl_into_db(filename):
     db.session.commit()
 
 with app.app_context():
-    # Call this function with the path to your JSONL file the first time you run the app
-    db.drop_all()
 
     db.create_all()
     # Call this function with the path to your JSONL file the first time you run the app
@@ -71,6 +69,19 @@ def ads():
     # Execute the query and return the results
     results = query.all()
     return jsonify([listing.to_dict() for listing in results])
+
+@app.route('/ads', methods=['POST'])
+def create_ad():
+    try:
+        data = request.get_json()
+        new_ad = Listing(**data)
+        db.session.add(new_ad)
+        db.session.commit()
+        return jsonify(new_ad.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        db_api_logger.error(f"Error creating ad: {e}")
+        return jsonify({"message": "Failed to create ad", "error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
