@@ -19,6 +19,7 @@ class Listing(db.Model):
     bedrooms = db.Column(db.String, nullable=False)
     energy_label = db.Column(db.String, nullable=False)
     ad_link = db.Column(db.String, nullable=False)
+    furnished = db.Column(db.String, nullable=False)
 
     def to_dict(self):
         return {
@@ -27,7 +28,8 @@ class Listing(db.Model):
             'area': self.area,
             'bedrooms': self.bedrooms,
             'energy_label': self.energy_label,
-            'ad_link': self.ad_link
+            'ad_link': self.ad_link,
+            'furnished': self.furnished
         }
 
 
@@ -40,8 +42,6 @@ def load_jsonl_into_db(filename):
     db.session.commit()
 
 with app.app_context():
-    # Call this function with the path to your JSONL file the first time you run the app
-    db.drop_all()
 
     db.create_all()
     # Call this function with the path to your JSONL file the first time you run the app
@@ -69,6 +69,19 @@ def ads():
     # Execute the query and return the results
     results = query.all()
     return jsonify([listing.to_dict() for listing in results])
+
+@app.route('/ads', methods=['POST'])
+def create_ad():
+    try:
+        data = request.get_json()
+        new_ad = Listing(**data)
+        db.session.add(new_ad)
+        db.session.commit()
+        return jsonify(new_ad.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        db_api_logger.error(f"Error creating ad: {e}")
+        return jsonify({"message": "Failed to create ad", "error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

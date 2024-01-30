@@ -10,7 +10,7 @@ import requests
 import argparse
 from perplexity import Perplexity
 from telegram import Bot
-from playwright.async_api import async_playwright
+from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError
 
 scraper_logger = setup_logger('scraper_logger', './logs/scraper_logfile.log')
 
@@ -31,7 +31,7 @@ def cleanse(response_text):
     lines = response_text.splitlines()
 
     # Ensure there are at least two lines to remove
-    if len(lines) >= 2:
+    if 'json' in response_text:
         # Remove the first and last lines
         lines = lines[1:-1]
 
@@ -40,16 +40,10 @@ def cleanse(response_text):
 
     return cleaned_text
 
-# Cleanse and save data
-def save_data(data, area):
+# Cleanse to DB
+def save_data(data):
     # Strip whitespace that might be at the start/end of the string
     data = data.strip()
-    
-    # Define the filename for the results
-    filename = f'./results/results_{area}.jsonl'
-    
-    # Make sure the directory exists
-    os.makedirs(os.path.dirname(filename), exist_ok=True)
     
     try:
         # Try to parse the string into JSON
@@ -58,10 +52,13 @@ def save_data(data, area):
         # If it fails, raise an error
         scraper_logger.info("New data is not valid JSON and cannot be appended")
     
-    # Open the file in append mode and write the new JSON object
-    with open(filename, 'a', encoding='utf-8') as f:
-        # Write the JSON data as a single line
-        f.write(json.dumps(new_data, ensure_ascii=False) + "\n")
+    # Make a POST request to the insert endpoint
+    response = requests.post(api_url, json=new_data)
+
+    if response.status_code == 201:
+        scraper_logger.info("Listing added successfully")
+    else:
+        scraper_logger.error("Failed to add listing", response.json())
 
 async def send_message_with_retry(message, max_retries=3):
     attempt = 0
@@ -77,7 +74,7 @@ async def send_message_with_retry(message, max_retries=3):
                 scraper_logger.info(response['answer'])
                 return response['answer']
 
-        except RuntimeError as e:
+        except e:
             if 'Server Error' in str(e):
                 attempt += 1
                 scraper_logger.info(f"Server Error encountered. Retry attempt {attempt}/{max_retries}.")
@@ -88,7 +85,7 @@ async def send_message_with_retry(message, max_retries=3):
 
         except Exception as e:
             scraper_logger.info(f"An unexpected error occurred: {e}")
-            scraper_logger.info(traceback.format_exc())
+            scraper_logger.error(traceback.format_exc())
             break  # Break on unexpected errors
 
     scraper_logger.info(f"Failed to send message after {max_retries} retries. Skipping message.")
@@ -113,8 +110,10 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
         page = await context.new_page()
 
         url = url.format(area=area, max_price=max_price, page_number=page_number)
+        scraper_logger.info(f"Scraping {broker['name']} - {url}")
+        
         await page.goto(url)
-
+        
         # Remove cookie dialog for cleaning up page
         if cookie_modal_selector:
             eval_func = """() => {{
@@ -132,17 +131,27 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
         try:
             scraper_logger.info(f"-- Scraping page {page_number}--")
             # Wait for the page to load fully
+
+            # if broker['name'] == 'Vbo':
+            #     html_broker = await page.inner_html('body')
+    
+            #     with open ('./debug/html_' + broker['name'] + '.html', 'w') as file_html:
+            #         file_html.write(html_broker)
+            #     await page.screenshot(path='./debug/screenshot_' + broker['name'] + '.png')
+
+            # Todo 1 - review Pararius scraping - Wait for the page to load fully. 10 seconds should be enough
             await page.wait_for_load_state()
 
             # Extract data from the page
+            # html_broker = await page.inner_html('body')
             ads = await page.query_selector_all(ad_selector)
-
-            # await page.screenshot(path='screenshot.png')
-
-            # Todo 1 - case of EU-Makelaardij loads the page but not yet loading the selectors and review Pararius scraping
+            
+            href = None
+            
             if not ads:
                 scraper_logger.info(f'wait_for_selector({ad_selector})')
-                ads = await page.wait_for_selector(ad_selector)
+                await page.wait_for_selector(ad_selector)
+                ads = await page.query_selector_all(ad_selector)
             
             for ad in ads:
                     text = await ad.inner_text()
@@ -150,7 +159,7 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                     # Taking in consideration every website has an anchor for the ad details/content - find the href for the ad_link
                     href_regex = re.compile(r'\bhref=["\']([^\'" >]+)')
                     # Get the outer HTML of the ad element
-                    outer_html = await ad.inner_html()
+                    outer_html = await page.evaluate('(element) => element.outerHTML', ad)
                     # with open ('outer_html.html', 'w') as file_html:
                     #     file_html.write(outer_html)
                     
@@ -201,7 +210,7 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
 
                             # scraper_logger.info(f'single ad: {text}')
                             message = """
-                            From this text, cleanse it and convert the information (if there) to a JSON object matching this schema: 
+                            From this text, cleanse it and convert the information (if there) to a JSON object, matching this schema: 
 
                             {
                                 "address":"",
@@ -209,6 +218,7 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                                 "area":"",
                                 "bedrooms":"",
                                 "energy_label":""
+                                "furnished":""
                             }
 
                             Format of the fields:
@@ -217,6 +227,7 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                             area - numbers only, must exclude other chars 
                             bedrooms - a string 
                             energy_label - a string
+                            furnished - a string, true or false
 
                             Note: Limit responses to valid JSON, with no explanatory text. Never truncate the JSON with an ellipsis. Always srurround the values with double quotes and escape quotes with \\. Always omit trailing commas. 
 
@@ -240,7 +251,7 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                             # response_text = await send_message_with_retry(client, bot, message, 262252582) # a2
                             # scraper_logger.info(f'Response text: {response_text}')
 
-                            save_data(updated_response_text, area)
+                            save_data(updated_response_text)
                             # scraper_logger.info(f"Data - page {page_number}: {data}")
                             
                             # Send notification
@@ -276,16 +287,16 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                     # if next_button:
                     #     scraper_logger.info(f"Another page for {area}")     
                     #     await scrape(area, url, ad_selector, next_button_selector, page_number + 1)
+        except PlaywrightTimeoutError as e:
+            scraper_logger.info(f"Timeout reaching {broker['name']}, or simply, no ads to scrape - skipping!")
+            scraper_logger.info(f"-- End {broker['name']} --")
         except Exception as e:
-            if 'Timeout' in str(e):
-                scraper_logger.info(f"Timeout reaching {broker['name']}, or simply, no ads to scrape - skipping!")
-                scraper_logger.info(f"-- End {broker['name']} --")
-            else:
-                if href:
-                    scraper_logger.info(f"There was an error processing this ad - {href}")  # Re-raise the exception after saving
-            scraper_logger.info(traceback.format_exc())
+            if href:
+                scraper_logger.error(f"There was an error processing this ad - {href}")
+            scraper_logger.error(traceback.format_exc())
         finally:
             await browser.close()
+
 
     scraper_logger.info(f'Saved into {filename}')
     scraper_logger.info(f"-- End {broker['name']} --")
@@ -336,7 +347,6 @@ if __name__ == "__main__":
 
     # Loop through all the brokers in the config
     for broker in config['brokers']:
-        scraper_logger.info(f"Scraping {broker['name']}")
         domain = broker['domain']
         url = broker['url']
         ad_selector = broker['ad_selector']
@@ -350,7 +360,7 @@ if __name__ == "__main__":
             loop.run_until_complete(coroutine)
         except Exception as e:
             scraper_logger.info(f"An error occurred while scraping {broker['name']} in {area}: {e}")
-            scraper_logger.info(traceback.format_exc())
+            scraper_logger.error(traceback.format_exc())
 
     # Close the event loop after all tasks are done
     loop.close()
