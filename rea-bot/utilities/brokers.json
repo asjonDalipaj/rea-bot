@@ -3,7 +3,7 @@
       {
          "name": "Kamernet",
          "domain": "https://kamernet.nl",
-         "url": "https://kamernet.nl/en/for-rent/rooms-{area}?radius=5&minSize=13&maxRent={max_price}&listingTypes=2%2C4%2C8%2C1&searchview=1",
+         "url": "https://kamernet.nl/en/for-rent/rooms-{area}?radius=5&minSize=13&maxRent=14&listingTypes=2%2C4%2C8%2C1&searchview=1",
          "ad_selector":"a.ListingCard_root__xVYYt",
          "next_button_selector":"",
          "cookie_modal_selector":""
@@ -60,7 +60,7 @@
          "name":"Huurportaal",
          "domain":"https://huurportaal.nl",
          "url":"https://huurportaal.nl/en/for-rent?location={area}&order=desc&rent=0-{max_price}",
-         "ad_selector":"div[class=\"col-sm-4 col-md-4 col-xs-12 col-lg-3\"] > div:not(.search-agent-signup-box) ",
+         "ad_selector":"div[data-controller='thumbnail--main']",
          "next_button_selector":"button[id=\"load-more\"]",
          "cookie_modal_selector":"button[data-coi-action=\"reject_all\"]"
       },

@@ -45,7 +45,7 @@ with app.app_context():
 
     db.create_all()
     # Call this function with the path to your JSONL file the first time you run the app
-    load_jsonl_into_db('./results/results_utrecht.jsonl')
+    # load_jsonl_into_db('./results/results_utrecht.jsonl')
 
     db_api_logger.info('DB API started.')
 

@@ -6,6 +6,8 @@ import re
 import traceback
 import hashlib
 import os
+import sys
+from dotenv import load_dotenv
 import requests
 import argparse
 from perplexity import Perplexity
@@ -75,18 +77,15 @@ async def send_message_with_retry(message, max_retries=3):
                 return response['answer']
 
         except e:
-            if 'Server Error' in str(e):
+            if 'already running' in str(e):
                 attempt += 1
                 scraper_logger.info(f"Server Error encountered. Retry attempt {attempt}/{max_retries}.")
                 # Since this is an async function, we still need to wait asynchronously.
-                await asyncio.sleep(20)
+                await asyncio.sleep(60)
             else:
-                raise e
-
-        except Exception as e:
-            scraper_logger.info(f"An unexpected error occurred: {e}")
-            scraper_logger.error(traceback.format_exc())
-            break  # Break on unexpected errors
+                scraper_logger.info(f"An unexpected error occurred: {e}")
+                scraper_logger.error(traceback.format_exc())
+                await sys.exit(1)
 
     scraper_logger.info(f"Failed to send message after {max_retries} retries. Skipping message.")
 
@@ -297,8 +296,6 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
         finally:
             await browser.close()
 
-
-    scraper_logger.info(f'Saved into {filename}')
     scraper_logger.info(f"-- End {broker['name']} --")
 
 if __name__ == "__main__":
@@ -320,23 +317,23 @@ if __name__ == "__main__":
 
     # Config
     # Read API key from a file and pass it to the function
-    api_info = load_config('./utilities/api_key.json')
-    api_key = api_info["key"]
+    load_dotenv()
+
+    api_key = os.getenv('API_KEY')
     # Replacing with Perplexity
     perplexity = Perplexity()
         
     # Setup Telegram
     # Prepend '-' for using channel ID
-    tg_channel_id = api_info["tg_channel_id"]
+    tg_channel_id = os.getenv('TG_CHANNEL_ID')
     tg_channel_id = f'-{tg_channel_id}'
 
-    tg_bot_hash = api_info["tg_bot_hash"]
+    tg_bot_hash = os.getenv('TG_BOT_HASH')
     # session_file = 'session'
 
     tg_bot = Bot(token=tg_bot_hash)
     
     config = load_config('./utilities/brokers.json')
-    filename = re.sub(r",", "_", f'./results/results_{area}.jsonl')
     # Define the API endpoint
     api_url = 'http://localhost:5000/ads'
 
