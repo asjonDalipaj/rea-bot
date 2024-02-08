@@ -1,6 +1,38 @@
 {
    "brokers":[
       {
+         "name": "House hunting",
+         "domain": "https://househunting.nl/",
+         "url": "https://househunting.nl/woningaanbod/?type=for-rent&filter_location={area}&street=&km=5&min-price=&max-price={max_price}",
+         "ad_selector":"li.location",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
+         "name": "Grand Relocation",
+         "domain": "https://www.grandrelocation.nl/",
+         "url": "https://www.grandrelocation.nl/woning-aanbod?city=amsterdam&max_price=1800",
+         "ad_selector":"a.houses-url",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
+         "name": "Regio Utrecht",
+         "domain": "https://utrecht.mijndak.nl/",
+         "url": "https://{area}.mijndak.nl/Woningaanbod",
+         "ad_selector":"a[id*='HuisContainerLink']",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
+         "name": "B&S rental service",
+         "domain": "https://www.bnsrentalservice.nl",
+         "url": "https://www.bnsrentalservice.nl/nl/aanbod#{{%22view%22:%22grid%22,%22sort%22:%22addedDesc%22:%22%22,%22salesRentals%22:%22rentals%22,%22salesPriceMin%22:0,%22salesPriceMax%22:{max_price},%22devSalesPriceMin%22:0,%22devSalesPriceMax%22:{max_price},%22rentalsPriceMin%22:0,%22rentalsPriceMax%22:{max_price},%22devRentalsPriceMin%22:0,%22devRentalsPriceMax%22:{max_price}:5259487,%22page%22:1}}",
+         "ad_selector":"div.card-object",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
          "name": "Kamernet",
          "domain": "https://kamernet.nl",
          "url": "https://kamernet.nl/en/for-rent/rooms-{area}?radius=5&minSize=13&maxRent=14&listingTypes=2%2C4%2C8%2C1&searchview=1",

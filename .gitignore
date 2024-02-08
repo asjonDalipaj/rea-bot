@@ -153,3 +153,4 @@ rea-bot/utilities/api_key.json
 
 # Test files
 rea-bot/*test*
+*.md

@@ -209,7 +209,7 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
 
                             # scraper_logger.info(f'single ad: {text}')
                             message = """
-                            From this text, cleanse it and convert the information (if there) to a JSON object, matching this schema: 
+                            From this text, cleanse and convert the information (if there) to a JSON object, matching this schema: 
 
                             {
                                 "address":"",
@@ -228,7 +228,7 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                             energy_label - a string
                             furnished - a string, true or false
 
-                            Note: Limit responses to valid JSON, with no explanatory text. Never truncate the JSON with an ellipsis. Always srurround the values with double quotes and escape quotes with \\. Always omit trailing commas. 
+                            Important! Limit responses to a valid JSON, no explanatory text. Never truncate the JSON with an ellipsis. Always srurround the values with double quotes and escape quotes with \\. Always omit trailing commas. 
 
                             Text:
                             """
@@ -240,8 +240,7 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                             # Looks like cleanse is not needed anymore? :D
                             response_text = cleanse(response_text)
                             response_data = json.loads(response_text)
-                            # id = generate_md5_hash(response_data)
-                            # response_data['id'] = id
+                            
                             # Add a new field with the key 'ad_link' and the value of href
                             response_data['ad_link'] = href
                             updated_response_text = json.dumps(response_data, ensure_ascii=False)
@@ -255,25 +254,33 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                             
                             # Send notification
                             
-                            notification_message = """
-                            🏄 Found new ad!
-                            {address} - € {price} p/m - {bedrooms} bedroom(s) - {area} m2 - E/L: {energy_label}
-                            {ad_link}
-                            """
+                            notification_message = (
+                                f"🏄 Found new ad!\n"
+                                f"{response_data['address']} - € {response_data['price']} p/m - {response_data['bedrooms']} bedroom(s) - {response_data['area']} m2 - E/L: {response_data['energy_label']}\n"
+                                f"{response_data['ad_link']}"
+                            )
 
-                            format_msg_lines = [line.strip() for line in notification_message.format(
-                                address=response_data['address'],
-                                price=response_data['price'],
-                                bedrooms=response_data['bedrooms'],
-                                area=response_data['area'],
-                                energy_label=response_data['energy_label'],
-                                ad_link=response_data['ad_link']
-                            ).splitlines()]
+                            # Ensure each line is stripped of leading/trailing whitespace
+                            formatted_msg = "\n".join(line.strip() for line in notification_message.splitlines())
 
-                            # Join the stripped lines back into a single string
-                            format_msg = "\n".join(format_msg_lines)
+                            applying_msg = (
+                                f"I'm looking for an apartment in Utrecht and I've found your listing at {response_data['address']}.\n"
+                                "I would love to view this apartment!\n"
+                                "My name is Asjon and I am a Software Engineer. My bruto income is €5800 per month. I'm moving in by myself.\n\n"
+                                "I'm available for a viewing as soon as it's possible. Could I come by for a viewing?\n\n"
+                                "You can reach me at +31 683715213 or asjon.dalipaj@gmail.com.\n\n"
+                                "Hope to hear from you!\n"
+                                "Kind regards,\n"
+                                "Asjon"
+                            )
 
-                            await tg_bot.send_message(chat_id=tg_channel_id, text=format_msg)
+                            # Ensure each line is stripped of leading/trailing whitespace
+                            formatted_apply_msg = "\n".join(line.strip() for line in applying_msg.splitlines())
+
+                            # Send the messages to the channel
+                            await tg_bot.send_message(chat_id=tg_channel_id, text=formatted_msg)
+                            await tg_bot.send_message(chat_id=tg_channel_id, text=formatted_apply_msg)
+
                             # Close the ad page and context after processing
                             await ad_page.close()
                             await ad_context.close()
