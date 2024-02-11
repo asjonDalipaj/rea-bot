@@ -8,7 +8,7 @@ import json
 db_api_logger = setup_logger('db_api_logger', './logs/api_logfile.log')
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///ads.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///listings.db'
 db = SQLAlchemy(app)
 
 class Listing(db.Model):
@@ -18,7 +18,7 @@ class Listing(db.Model):
     area = db.Column(db.String, nullable=False)
     bedrooms = db.Column(db.String, nullable=False)
     energy_label = db.Column(db.String, nullable=False)
-    ad_link = db.Column(db.String, nullable=False)
+    listing_link = db.Column(db.String, nullable=False)
     furnished = db.Column(db.String, nullable=False)
 
     def to_dict(self):
@@ -28,7 +28,7 @@ class Listing(db.Model):
             'area': self.area,
             'bedrooms': self.bedrooms,
             'energy_label': self.energy_label,
-            'ad_link': self.ad_link,
+            'listing_link': self.listing_link,
             'furnished': self.furnished
         }
 
@@ -49,11 +49,11 @@ with app.app_context():
 
     db_api_logger.info('DB API started.')
 
-@app.route('/ads', methods=['GET'])
-def ads():
+@app.route('/listings', methods=['GET'])
+def listings():
     # Retrieve query parameters
     address_query = request.args.get('address', '')
-    ad_link_query = request.args.get('ad_link', '')
+    listing_link_query = request.args.get('listing_link', '')
 
     # Base query
     query = Listing.query
@@ -62,26 +62,26 @@ def ads():
     if address_query:
         query = query.filter(Listing.address.like(f"%{address_query}%"))
 
-    # Filter by ad_link if the ad_link parameter is provided
-    if ad_link_query:
-        query = query.filter(Listing.ad_link == ad_link_query)
+    # Filter by listing_link if the listing_link parameter is provided
+    if listing_link_query:
+        query = query.filter(Listing.listing_link == listing_link_query)
 
     # Execute the query and return the results
     results = query.all()
     return jsonify([listing.to_dict() for listing in results])
 
-@app.route('/ads', methods=['POST'])
-def create_ad():
+@app.route('/listings', methods=['POST'])
+def create_listing():
     try:
         data = request.get_json()
-        new_ad = Listing(**data)
-        db.session.add(new_ad)
+        new_listing = Listing(**data)
+        db.session.add(new_listing)
         db.session.commit()
-        return jsonify(new_ad.to_dict()), 201
+        return jsonify(new_listing.to_dict()), 201
     except Exception as e:
         db.session.rollback()
-        db_api_logger.error(f"Error creating ad: {e}")
-        return jsonify({"message": "Failed to create ad", "error": str(e)}), 500
+        db_api_logger.error(f"Error creating listing: {e}")
+        return jsonify({"message": "Failed to create listing", "error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

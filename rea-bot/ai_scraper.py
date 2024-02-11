@@ -138,45 +138,45 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
             #         file_html.write(html_broker)
             #     await page.screenshot(path='./debug/screenshot_' + broker['name'] + '.png')
 
-            # Todo 1 - review Pararius scraping - Wait for the page to load fully. 10 seconds should be enough
             await page.wait_for_load_state()
 
             # Extract data from the page
             # html_broker = await page.inner_html('body')
-            ads = await page.query_selector_all(ad_selector)
+            listings = await page.query_selector_all(ad_selector)
             
             href = None
             
-            if not ads:
+            # Wait for the selector instead if no ad is found
+            if not listings:
                 scraper_logger.info(f'wait_for_selector({ad_selector})')
                 await page.wait_for_selector(ad_selector)
-                ads = await page.query_selector_all(ad_selector)
+                listings = await page.query_selector_all(ad_selector)
             
-            for ad in ads:
-                    text = await ad.inner_text()
+            for listing in listings:
+                    text = await listing.inner_text()
 
-                    # Taking in consideration every website has an anchor for the ad details/content - find the href for the ad_link
+                    # Taking in consideration every website has an anchor for the listing details/content - find the href for the listing_link
                     href_regex = re.compile(r'\bhref=["\']([^\'" >]+)')
-                    # Get the outer HTML of the ad element
-                    outer_html = await page.evaluate('(element) => element.outerHTML', ad)
+                    # Get the outer HTML of the listing element
+                    outer_html = await page.evaluate('(element) => element.outerHTML', listing)
                     # with open ('outer_html.html', 'w') as file_html:
                     #     file_html.write(outer_html)
                     
                     # Search for hrefs within the HTML using the regex
                     matches = href_regex.findall(outer_html)
                     if matches:
-                        # Usually the closest href is the link to the ad
+                        # Usually the closest href is the link to the listing
                         href = matches[0]
 
                         # Check whether missing domain url
                         if domain not in href:
                             href = domain + href
-                        scraper_logger.info(f'Processing ad - {href}')
+                        scraper_logger.info(f'Processing listing - {href}')
 
                         # Todo last - to improve through all sites?
                         # Define any query parameters you want to send
                         params = {
-                            'ad_link': href
+                            'listing_link': href
                         }
 
                         # Send a GET request with the query parameters
@@ -193,21 +193,21 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                             await asyncio.sleep(10)
                             ## Call AI ##
 
-                            # Create a new context with a different user agent for each ad
+                            # Create a new context with a different user agent for each listing
                             new_user_agent = userAgentStrings[random.randint(0, len(userAgentStrings) - 1)]
-                            ad_context = await browser.new_context(user_agent=new_user_agent)
+                            listing_context = await browser.new_context(user_agent=new_user_agent)
 
-                            ad_page = await ad_context.new_page()
+                            listing_page = await listing_context.new_page()
 
-                            # Click the ad using the selector within the new page
-                            await ad_page.goto(f"{href}")
-                            await ad_page.wait_for_load_state()
+                            # Click the listing using the selector within the new page
+                            await listing_page.goto(f"{href}")
+                            await listing_page.wait_for_load_state()
 
                             # Reading the whole body because might be the AI can cross-find some information
                             # from other boxes present in the page rather the description only
-                            page_text = await ad_page.inner_text('body')
+                            page_text = await listing_page.inner_text('body')
 
-                            # scraper_logger.info(f'single ad: {text}')
+                            # scraper_logger.info(f'single listing: {text}')
                             message = """
                             From this text, cleanse and convert the information (if there) to a JSON object, matching this schema: 
 
@@ -241,8 +241,8 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                             response_text = cleanse(response_text)
                             response_data = json.loads(response_text)
                             
-                            # Add a new field with the key 'ad_link' and the value of href
-                            response_data['ad_link'] = href
+                            # Add a new field with the key 'listing_link' and the value of href
+                            response_data['listing_link'] = href
                             updated_response_text = json.dumps(response_data, ensure_ascii=False)
                             scraper_logger.info(updated_response_text)
 
@@ -255,9 +255,9 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                             # Send notification
                             
                             notification_message = (
-                                f"🏄 Found new ad!\n"
+                                f"🏄 Found new listing!\n"
                                 f"{response_data['address']} - € {response_data['price']} p/m - {response_data['bedrooms']} bedroom(s) - {response_data['area']} m2 - E/L: {response_data['energy_label']}\n"
-                                f"{response_data['ad_link']}"
+                                f"{response_data['listing_link']}"
                             )
 
                             # Ensure each line is stripped of leading/trailing whitespace
@@ -281,24 +281,24 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                             await tg_bot.send_message(chat_id=tg_channel_id, text=formatted_msg)
                             await tg_bot.send_message(chat_id=tg_channel_id, text=formatted_apply_msg)
 
-                            # Close the ad page and context after processing
-                            await ad_page.close()
-                            await ad_context.close()
+                            # Close the listing page and context after processing
+                            await listing_page.close()
+                            await listing_context.close()
                     else:
-                        scraper_logger.info("No URL found in the HTML of this ad.")
+                        scraper_logger.info("No URL found in the HTML of this listing.")
                     
                     # TODO 2 - Handle pagination if required
                     # next_button = await page.query_selector(next_button_selector)
                     # scraper_logger.info("Next Page btn:", next_button)
                     # if next_button:
                     #     scraper_logger.info(f"Another page for {area}")     
-                    #     await scrape(area, url, ad_selector, next_button_selector, page_number + 1)
+                    #     await scrape(area, url, listing_selector, next_button_selector, page_number + 1)
         except PlaywrightTimeoutError as e:
-            scraper_logger.info(f"Timeout reaching {broker['name']}, or simply, no ads to scrape - skipping!")
+            scraper_logger.info(f"Timeout reaching {broker['name']}, or simply, no listings to scrape - skipping!")
             scraper_logger.info(f"-- End {broker['name']} --")
         except Exception as e:
             if href:
-                scraper_logger.error(f"There was an error processing this ad - {href}")
+                scraper_logger.error(f"There was an error processing this listing - {href}")
             scraper_logger.error(traceback.format_exc())
         finally:
             await browser.close()
@@ -342,7 +342,7 @@ if __name__ == "__main__":
     
     config = load_config('./utilities/brokers.json')
     # Define the API endpoint
-    api_url = 'http://localhost:5000/ads'
+    api_url = 'http://localhost:5000/listings'
 
     scraper_logger.info('### Scraper started ###')
 
@@ -353,13 +353,13 @@ if __name__ == "__main__":
     for broker in config['brokers']:
         domain = broker['domain']
         url = broker['url']
-        ad_selector = broker['ad_selector']
+        listing_selector = broker['listing_selector']
         next_button_selector = broker['next_button_selector']
         cookie_modal_selector = broker['cookie_modal_selector']
 
         # Call scrape function for the current broker
         # Use the event loop you set up earlier
-        coroutine = scrape(url, domain, ad_selector, next_button_selector, cookie_modal_selector)
+        coroutine = scrape(url, domain, listing_selector, next_button_selector, cookie_modal_selector)
         try:
             loop.run_until_complete(coroutine)
         except Exception as e:

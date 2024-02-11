@@ -4,23 +4,15 @@
          "name": "House hunting",
          "domain": "https://househunting.nl/",
          "url": "https://househunting.nl/woningaanbod/?type=for-rent&filter_location={area}&street=&km=5&min-price=&max-price={max_price}",
-         "ad_selector":"li.location",
+         "listing_selector":"li.location",
          "next_button_selector":"",
          "cookie_modal_selector":""
       },
       {
          "name": "Grand Relocation",
          "domain": "https://www.grandrelocation.nl/",
-         "url": "https://www.grandrelocation.nl/woning-aanbod?city=amsterdam&max_price=1800",
-         "ad_selector":"a.houses-url",
-         "next_button_selector":"",
-         "cookie_modal_selector":""
-      },
-      {
-         "name": "Regio Utrecht",
-         "domain": "https://utrecht.mijndak.nl/",
-         "url": "https://{area}.mijndak.nl/Woningaanbod",
-         "ad_selector":"a[id*='HuisContainerLink']",
+         "url": "https://www.grandrelocation.nl/woning-aanbod?city={area}&max_price={max_price}",
+         "listing_selector":"a.houses-url",
          "next_button_selector":"",
          "cookie_modal_selector":""
       },
@@ -28,15 +20,7 @@
          "name": "B&S rental service",
          "domain": "https://www.bnsrentalservice.nl",
          "url": "https://www.bnsrentalservice.nl/nl/aanbod#{{%22view%22:%22grid%22,%22sort%22:%22addedDesc%22:%22%22,%22salesRentals%22:%22rentals%22,%22salesPriceMin%22:0,%22salesPriceMax%22:{max_price},%22devSalesPriceMin%22:0,%22devSalesPriceMax%22:{max_price},%22rentalsPriceMin%22:0,%22rentalsPriceMax%22:{max_price},%22devRentalsPriceMin%22:0,%22devRentalsPriceMax%22:{max_price}:5259487,%22page%22:1}}",
-         "ad_selector":"div.card-object",
-         "next_button_selector":"",
-         "cookie_modal_selector":""
-      },
-      {
-         "name": "Kamernet",
-         "domain": "https://kamernet.nl",
-         "url": "https://kamernet.nl/en/for-rent/rooms-{area}?radius=5&minSize=13&maxRent=14&listingTypes=2%2C4%2C8%2C1&searchview=1",
-         "ad_selector":"a.ListingCard_root__xVYYt",
+         "listing_selector":"div.card-object",
          "next_button_selector":"",
          "cookie_modal_selector":""
       },
@@ -44,7 +28,7 @@
          "name": "VGW group",
          "domain": "https://vgwgroup.nl/",
          "url": "https://vgwgroup.nl/en-gb/residential-listings/rent/type-apartment,house?pricerange.maxprice={max_price}&pricerange.minprice=400",
-         "ad_selector":"article.objectcontainer:has(span.new_forrent)",
+         "listing_selector":"article.objectcontainer:has(span.new_forrent)",
          "next_button_selector":"",
          "cookie_modal_selector":""
       },
@@ -52,7 +36,7 @@
          "name": "Start Housing",
          "domain": "https://www.starthousing.nl",
          "url": "https://www.starthousing.nl/woningaanbod/huur/{area}?locationofinterest={area}&moveunavailablelistingstothebottom=true&pricerange.maxprice={max_price}",
-         "ad_selector":"div.listgal:has(div.new_forrent)",
+         "listing_selector":"div.listgal:has(div.new_forrent)",
          "next_button_selector":"",
          "cookie_modal_selector":""
       },
@@ -60,7 +44,7 @@
          "name": "Vanderhuizen",
          "domain": "https://www.vanderhuizen.com",
          "url": "https://www.vanderhuizen.com/huurwoningen?city%5B%5D={area}-1&type%5B%5D=kamer&price_from=0&price_to={max_price}&sort=",
-         "ad_selector":"article.Block",
+         "listing_selector":"article.Block",
          "next_button_selector":"",
          "cookie_modal_selector":""
       },
@@ -68,15 +52,7 @@
          "name": "Huurflits",
          "domain": "https://huurflits.nl",
          "url": "https://huurflits.nl/woningoverzicht/zoekresultaten?search={area}&price_low=0&price_high={max_price}",
-         "ad_selector":"div[class='col-md-6 col-lg-6']:has(a:has-text('Nieuw'))",
-         "next_button_selector":"",
-         "cookie_modal_selector":""
-      },
-      {
-         "name": "Papayo",
-         "domain": "https://papayo.nl/",
-         "url": "https://papayo.nl/zoek-een-woning/?location={area}&max-price={max_price}",
-         "ad_selector":"div.rh_list_card__wrap",
+         "listing_selector":"div[class='col-md-6 col-lg-6']:has(a:has-text('Nieuw'))",
          "next_button_selector":"",
          "cookie_modal_selector":""
       },
@@ -84,7 +60,7 @@
          "name": "EU-Makelaardij",
          "domain": "https://www.eu-makelaardij.com/",
          "url": "https://www.eu-makelaardij.com/woningaanbod?status=rent&city={area}&max_price={max_price}",
-         "ad_selector":"div.listing-house:not(:has(span:has-text('Verhuurd')))",
+         "listing_selector":"div.listing-house:not(:has(span:has-text('Verhuurd')))",
          "next_button_selector":"",
          "cookie_modal_selector":""
       },
@@ -92,7 +68,7 @@
          "name":"Huurportaal",
          "domain":"https://huurportaal.nl",
          "url":"https://huurportaal.nl/en/for-rent?location={area}&order=desc&rent=0-{max_price}",
-         "ad_selector":"div[data-controller='thumbnail--main']",
+         "listing_selector":"div[data-controller='thumbnail--main']",
          "next_button_selector":"button[id=\"load-more\"]",
          "cookie_modal_selector":"button[data-coi-action=\"reject_all\"]"
       },
@@ -100,15 +76,15 @@
          "name": "Verkoopmakelaarbas",
          "domain": "https://verkoopmakelaarbas.nl",
          "url": "https://verkoopmakelaarbas.nl/huurwoningen/",
-         "ad_selector":"div.aw-card:has(span:has-text('Te huur'))",
+         "listing_selector":"div.aw-card:has(span:has-text('Te huur'))",
          "next_button_selector":"",
          "cookie_modal_selector":""
       },
       {
          "name": "HousingAnywhere",
          "domain": "https://housinganywhere.com",
-         "url": "https://housinganywhere.com/s/{area}--Netherlands?startDate=2024-02-01&priceMax={max_price}00&sorting=mostRecent",
-         "ad_selector":"div[class='MuiGrid-root MuiGrid-item MuiGrid-grid-xs-12 MuiGrid-grid-sm-12 MuiGrid-grid-md-4 css-kiyygt']",
+         "url": "https://housinganywhere.com/s/{area}--Netherlands?priceMax={max_price}00&bills=included&sorting=mostRecent",
+         "listing_selector":"div[class='MuiGrid-root MuiGrid-item MuiGrid-grid-xs-12 MuiGrid-grid-sm-12 MuiGrid-grid-md-4 css-kiyygt']",
          "next_button_selector":"",
          "cookie_modal_selector":""
       },
@@ -116,7 +92,7 @@
          "name": "roxxle",
          "domain": "https://roxxle.nl",
          "url": "https://roxxle.nl/aanbod/huurwoningen?zoekopdracht={area}&prijs_max={max_price}&order=datum&direction=desc",
-         "ad_selector":"div[class*='object_wrapper']:has(span.label-nieuw)",
+         "listing_selector":"div[class*='object_wrapper']:has(span.label-nieuw)",
          "next_button_selector":"",
          "cookie_modal_selector":""
       },
@@ -124,7 +100,7 @@
          "name": "Een hoorn",
          "domain": "https://www.eenhoornmanagement.nl",
          "url": "https://www.eenhoornmanagement.nl/nl/aanbod",
-         "ad_selector":"div[class*='card-object']:has(span:has-text('Nieuw'))",
+         "listing_selector":"div[class*='card-object']:has(span:has-text('Nieuw'))",
          "next_button_selector":"",
          "cookie_modal_selector":""
       },
@@ -132,7 +108,7 @@
          "name":"Funda",
          "domain":"https://www.funda.nl",
          "url":"https://www.funda.nl/zoeken/huur?selected_area=%5B%22{area}%22%5D&search_result={page_number}&price=%22-1250%22&sort=%22date_down%22",
-         "ad_selector":"div[data-test-id=\"search-result-item\"]",
+         "listing_selector":"div[data-test-id=\"search-result-item\"]",
          "next_button_selector":"li:not(.disabled) > a > span:has-text(\"Volgende\")",
          "cookie_modal_selector":".didomi-popup-backdrop"
       },
@@ -140,7 +116,7 @@
          "name":"Beumer",
          "domain":"https://www.beumer.nl",
          "url":"https://www.beumer.nl/wonen/zoeken/heel-nederland/huur/{area}",
-         "ad_selector":"div[class*='house-col']",
+         "listing_selector":"div[class*='house-col']",
          "next_button_selector":"a[class*='next']",
          "cookie_modal_selector":""
       },
@@ -148,7 +124,7 @@
          "name":"Homesearch",
          "domain":"https://homesearch.nl",
          "url":"https://homesearch.nl/te-huur",
-         "ad_selector":".card.mb-3:has(.mb-0.pb-0:has-text('€'))",
+         "listing_selector":".card.mb-3:has(.mb-0.pb-0:has-text('€'))",
          "next_button_selector":"",
          "cookie_modal_selector":""
       },
@@ -156,7 +132,7 @@
          "name": "Domica",
          "domain": "https://www.domica.nl/",
          "url": "https://www.domica.nl/woningaanbod?offer=rent&location={area}",
-         "ad_selector":"a[class*='eazlee_object']",
+         "listing_selector":"a[class*='eazlee_object']",
          "next_button_selector": "",
          "cookie_modal_selector": ""
       },
@@ -164,7 +140,7 @@
          "name":"Rotvast",
          "domain":"https://www.rotsvast.nl",
          "url":"https://www.rotsvast.nl/woningaanbod/?type=2&searchPattern={area}&office=0&maximumPrice[2]={max_price}",
-         "ad_selector":"div[class*=\"clickable-parent\"]",
+         "listing_selector":"div[class*=\"clickable-parent\"]",
          "next_button_selector":"",
          "cookie_modal_selector":""
       },
@@ -172,7 +148,7 @@
          "name": "123Wonen",
          "domain": "https://www.123wonen.nl",
          "url": "https://www.123wonen.nl/huurwoningen/in/{area}",
-         "ad_selector":"div[class*='verhuurdovb']",
+         "listing_selector":"div[class*='verhuurdovb']",
          "next_button_selector": "",
          "cookie_modal_selector": ""
       },
@@ -180,7 +156,7 @@
          "name":"Vbo",
          "domain":"https://www.vbo.nl",
          "url":"https://www.vbo.nl/huurwoningen?q={area}&straal=&huurprijs_van=&huurprijs_tot={max_price}",
-         "ad_selector":"div[class=\"col-12 col-sm-6 col-lg-4\"]:has(div:has-text('nieuw'))",
+         "listing_selector":"div[class=\"col-12 col-sm-6 col-lg-4\"]:has(div:has-text('nieuw'))",
          "next_button_selector":"",
          "cookie_modal_selector":"div[id=\"cookiewall\"]"
       },
@@ -188,7 +164,7 @@
          "name": "YourHouse",
          "domain": "https://your-house.nl",
          "url": "https://your-house.nl/woningaanbod/huur/{area}?locationofinterest={area}&moveunavailablelistingstothebottom=true&orderby=10&orderdescending=true",
-         "ad_selector":"article[class*=\"objectcontainer\"]",
+         "listing_selector":"article[class*=\"objectcontainer\"]",
          "next_button_selector": "",
          "cookie_modal_selector": ""
       },
@@ -196,7 +172,7 @@
          "name":"Covers Wonen",
          "domain":"https://coverswonen.nl",
          "url":"https://coverswonen.nl/en/properties/rent",
-         "ad_selector":"div[class=\"thumbs-item thumbs-item-vertical\"]",
+         "listing_selector":"div[class=\"thumbs-item thumbs-item-vertical\"]",
          "next_button_selector":"",
          "cookie_modal_selector":""
       },
@@ -204,7 +180,7 @@
          "name": "IamExpat",
          "domain": "https://www.iamexpat.nl",
          "url": "https://www.iamexpat.nl/housing/rentals/{area}/260-{max_price}",
-         "ad_selector":"li[class=\"row article property\"]",
+         "listing_selector":"li[class=\"row article property\"]",
          "next_button_selector": "",
          "cookie_modal_selector": ""
       },
@@ -212,7 +188,7 @@
          "name":"Pararius",
          "domain":"https://www.pararius.nl",
          "url":"https://www.pararius.nl/huurwoningen/{area}/0-{max_price}",
-         "ad_selector":"li.search-list__item--listing",
+         "listing_selector":"li.search-list__item--listing",
          "next_button_selector":"",
          "cookie_modal_selector":""
       },
@@ -220,7 +196,7 @@
          "name":"Jaap",
          "domain":"https://www.jaap.nl",
          "url":"https://www.jaap.nl/huurhuizen/{area}",
-         "ad_selector":"app-listing-item",
+         "listing_selector":"app-listing-item",
          "next_button_selector":"",
          "cookie_modal_selector":""
       },
@@ -228,7 +204,7 @@
          "name": "WVO",
          "domain": "https://www.wvo.nl",
          "url": "https://www.wvo.nl/aanbod/woningaanbod/-{max_price}/huur/",
-         "ad_selector":"li.al4woning:not(:has(span.bannerstatusverhuurd))",
+         "listing_selector":"li.al4woning:not(:has(span.bannerstatusverhuurd))",
          "next_button_selector":"",
          "cookie_modal_selector":""
       }
