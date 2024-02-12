@@ -6,6 +6,8 @@ import re
 import traceback
 import hashlib
 import os
+import sys
+from dotenv import load_dotenv
 import requests
 import argparse
 from perplexity import Perplexity
@@ -62,33 +64,29 @@ def save_data(data):
 
 async def send_message_with_retry(message, max_retries=3):
     attempt = 0
-    while attempt < max_retries:
-        try:
-            scraper_logger.info('Running query...')
-            response = None
-            for chunk in perplexity.search(message):
-                response = chunk  # Assuming the last chunk contains the answer
-            
-            # After iterating over the generator, check if the response contains 'answer'
-            if response and 'answer' in response:
-                scraper_logger.info(response['answer'])
-                return response['answer']
+    try:
+        scraper_logger.info('Running query...')
+        response = None
+        for chunk in perplexity.search(message):
+            response = chunk  # Assuming the last chunk contains the answer
+        
+        # After iterating over the generator, check if the response contains 'answer'
+        if response and 'answer' in response:
+            scraper_logger.info(response['answer'])
+            return response['answer']
 
-        except e:
-            if 'Server Error' in str(e):
-                attempt += 1
-                scraper_logger.info(f"Server Error encountered. Retry attempt {attempt}/{max_retries}.")
-                # Since this is an async function, we still need to wait asynchronously.
-                await asyncio.sleep(20)
-            else:
-                raise e
-
-        except Exception as e:
+    except e:
+        if 'already running' in str(e):
+            attempt += 1
+            scraper_logger.info(f"Server Error encountered. Retry attempt {attempt}/{max_retries}.")
+            # Since this is an async function, we still need to wait asynchronously.
+            await asyncio.sleep(60)
+        else:
             scraper_logger.info(f"An unexpected error occurred: {e}")
             scraper_logger.error(traceback.format_exc())
-            break  # Break on unexpected errors
+            await sys.exit(1)
 
-    scraper_logger.info(f"Failed to send message after {max_retries} retries. Skipping message.")
+        scraper_logger.info(f"Failed to send message after {max_retries} retries. Skipping message.")
 
 async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_selector, page_number=1):
     async with async_playwright() as p:
@@ -132,52 +130,52 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
             scraper_logger.info(f"-- Scraping page {page_number}--")
             # Wait for the page to load fully
 
-            # if broker['name'] == 'Vbo':
-            #     html_broker = await page.inner_html('body')
-    
-            #     with open ('./debug/html_' + broker['name'] + '.html', 'w') as file_html:
-            #         file_html.write(html_broker)
-            #     await page.screenshot(path='./debug/screenshot_' + broker['name'] + '.png')
-
-            # Todo 1 - review Pararius scraping - Wait for the page to load fully. 10 seconds should be enough
             await page.wait_for_load_state()
 
             # Extract data from the page
             # html_broker = await page.inner_html('body')
-            ads = await page.query_selector_all(ad_selector)
+            listings = await page.query_selector_all(ad_selector)
             
             href = None
             
-            if not ads:
+            # Wait for the selector instead if no ad is found
+            if not listings:
                 scraper_logger.info(f'wait_for_selector({ad_selector})')
                 await page.wait_for_selector(ad_selector)
-                ads = await page.query_selector_all(ad_selector)
-            
-            for ad in ads:
-                    text = await ad.inner_text()
+                listings = await page.query_selector_all(ad_selector)
 
-                    # Taking in consideration every website has an anchor for the ad details/content - find the href for the ad_link
+            if broker['name'] == 'Pararius':
+                html_broker = await page.inner_html('body')
+    
+                with open ('./debug/html_' + broker['name'] + '.html', 'w') as file_html:
+                    file_html.write(html_broker)
+                await page.screenshot(path='./debug/screenshot_' + broker['name'] + '.png')
+            
+            for listing in listings:
+                    text = await listing.inner_text()
+
+                    # Taking in consideration every website has an anchor for the listing details/content - find the href for the listing_link
                     href_regex = re.compile(r'\bhref=["\']([^\'" >]+)')
-                    # Get the outer HTML of the ad element
-                    outer_html = await page.evaluate('(element) => element.outerHTML', ad)
+                    # Get the outer HTML of the listing element
+                    outer_html = await page.evaluate('(element) => element.outerHTML', listing)
                     # with open ('outer_html.html', 'w') as file_html:
                     #     file_html.write(outer_html)
                     
                     # Search for hrefs within the HTML using the regex
                     matches = href_regex.findall(outer_html)
                     if matches:
-                        # Usually the closest href is the link to the ad
+                        # Usually the closest href is the link to the listing
                         href = matches[0]
 
                         # Check whether missing domain url
                         if domain not in href:
                             href = domain + href
-                        scraper_logger.info(f'Processing ad - {href}')
+                        scraper_logger.info(f'Processing listing - {href}')
 
                         # Todo last - to improve through all sites?
                         # Define any query parameters you want to send
                         params = {
-                            'ad_link': href
+                            'listing_link': href
                         }
 
                         # Send a GET request with the query parameters
@@ -194,23 +192,23 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                             await asyncio.sleep(10)
                             ## Call AI ##
 
-                            # Create a new context with a different user agent for each ad
+                            # Create a new context with a different user agent for each listing
                             new_user_agent = userAgentStrings[random.randint(0, len(userAgentStrings) - 1)]
-                            ad_context = await browser.new_context(user_agent=new_user_agent)
+                            listing_context = await browser.new_context(user_agent=new_user_agent)
 
-                            ad_page = await ad_context.new_page()
+                            listing_page = await listing_context.new_page()
 
-                            # Click the ad using the selector within the new page
-                            await ad_page.goto(f"{href}")
-                            await ad_page.wait_for_load_state()
+                            # Click the listing using the selector within the new page
+                            await listing_page.goto(f"{href}")
+                            await listing_page.wait_for_load_state()
 
                             # Reading the whole body because might be the AI can cross-find some information
                             # from other boxes present in the page rather the description only
-                            page_text = await ad_page.inner_text('body')
+                            page_text = await listing_page.inner_text('body')
 
-                            # scraper_logger.info(f'single ad: {text}')
+                            # scraper_logger.info(f'single listing: {text}')
                             message = """
-                            From this text, cleanse it and convert the information (if there) to a JSON object, matching this schema: 
+                            From this text, cleanse and convert the information (if there) to a JSON object, matching this schema: 
 
                             {
                                 "address":"",
@@ -229,7 +227,7 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                             energy_label - a string
                             furnished - a string, true or false
 
-                            Note: Limit responses to valid JSON, with no explanatory text. Never truncate the JSON with an ellipsis. Always srurround the values with double quotes and escape quotes with \\. Always omit trailing commas. 
+                            Important! Limit responses to a valid JSON, no explanatory text. Never truncate the JSON with an ellipsis. Always srurround the values with double quotes and escape quotes with \\. Always omit trailing commas. 
 
                             Text:
                             """
@@ -241,10 +239,9 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                             # Looks like cleanse is not needed anymore? :D
                             response_text = cleanse(response_text)
                             response_data = json.loads(response_text)
-                            # id = generate_md5_hash(response_data)
-                            # response_data['id'] = id
-                            # Add a new field with the key 'ad_link' and the value of href
-                            response_data['ad_link'] = href
+                            
+                            # Add a new field with the key 'listing_link' and the value of href
+                            response_data['listing_link'] = href
                             updated_response_text = json.dumps(response_data, ensure_ascii=False)
                             scraper_logger.info(updated_response_text)
 
@@ -256,49 +253,55 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                             
                             # Send notification
                             
-                            notification_message = """
-                            🏄 Found new ad!
-                            {address} - € {price} p/m - {bedrooms} bedroom(s) - {area} m2 - E/L: {energy_label}
-                            {ad_link}
-                            """
+                            notification_message = (
+                                f"🏄 Found new listing!\n"
+                                f"{response_data['address']} - € {response_data['price']} p/m - {response_data['bedrooms']} bedroom(s) - {response_data['area']} m2 - E/L: {response_data['energy_label']}\n"
+                                f"{response_data['listing_link']}"
+                            )
 
-                            format_msg_lines = [line.strip() for line in notification_message.format(
-                                address=response_data['address'],
-                                price=response_data['price'],
-                                bedrooms=response_data['bedrooms'],
-                                area=response_data['area'],
-                                energy_label=response_data['energy_label'],
-                                ad_link=response_data['ad_link']
-                            ).splitlines()]
+                            # Ensure each line is stripped of leading/trailing whitespace
+                            formatted_msg = "\n".join(line.strip() for line in notification_message.splitlines())
 
-                            # Join the stripped lines back into a single string
-                            format_msg = "\n".join(format_msg_lines)
+                            applying_msg = (
+                                f"I'm looking for an apartment in Utrecht and I've found your listing at {response_data['address']}.\n"
+                                "I would love to view this apartment!\n"
+                                "My name is Asjon and I am a Software Engineer. My bruto income is €5800 per month. I'm moving in by myself.\n\n"
+                                "I'm available for a viewing as soon as it's possible. Could I come by for a viewing?\n\n"
+                                "You can reach me at +31 683715213 or asjon.dalipaj@gmail.com.\n\n"
+                                "Hope to hear from you!\n"
+                                "Kind regards,\n"
+                                "Asjon"
+                            )
 
-                            await tg_bot.send_message(chat_id=tg_channel_id, text=format_msg)
-                            # Close the ad page and context after processing
-                            await ad_page.close()
-                            await ad_context.close()
+                            # Ensure each line is stripped of leading/trailing whitespace
+                            formatted_apply_msg = "\n".join(line.strip() for line in applying_msg.splitlines())
+
+                            # Send the messages to the channel
+                            await tg_bot.send_message(chat_id=tg_channel_id, text=formatted_msg)
+                            await tg_bot.send_message(chat_id=tg_channel_id, text=formatted_apply_msg)
+
+                            # Close the listing page and context after processing
+                            await listing_page.close()
+                            await listing_context.close()
                     else:
-                        scraper_logger.info("No URL found in the HTML of this ad.")
+                        scraper_logger.info("No URL found in the HTML of this listing.")
                     
                     # TODO 2 - Handle pagination if required
                     # next_button = await page.query_selector(next_button_selector)
                     # scraper_logger.info("Next Page btn:", next_button)
                     # if next_button:
                     #     scraper_logger.info(f"Another page for {area}")     
-                    #     await scrape(area, url, ad_selector, next_button_selector, page_number + 1)
+                    #     await scrape(area, url, listing_selector, next_button_selector, page_number + 1)
         except PlaywrightTimeoutError as e:
-            scraper_logger.info(f"Timeout reaching {broker['name']}, or simply, no ads to scrape - skipping!")
+            scraper_logger.info(f"Timeout reaching {broker['name']}, or simply, no listings to scrape - skipping!")
             scraper_logger.info(f"-- End {broker['name']} --")
         except Exception as e:
             if href:
-                scraper_logger.error(f"There was an error processing this ad - {href}")
+                scraper_logger.error(f"There was an error processing this listing - {href}")
             scraper_logger.error(traceback.format_exc())
         finally:
             await browser.close()
 
-
-    scraper_logger.info(f'Saved into {filename}')
     scraper_logger.info(f"-- End {broker['name']} --")
 
 if __name__ == "__main__":
@@ -320,25 +323,25 @@ if __name__ == "__main__":
 
     # Config
     # Read API key from a file and pass it to the function
-    api_info = load_config('./utilities/api_key.json')
-    api_key = api_info["key"]
+    load_dotenv()
+
+    api_key = os.getenv('API_KEY')
     # Replacing with Perplexity
     perplexity = Perplexity()
         
     # Setup Telegram
     # Prepend '-' for using channel ID
-    tg_channel_id = api_info["tg_channel_id"]
+    tg_channel_id = os.getenv('TG_CHANNEL_ID')
     tg_channel_id = f'-{tg_channel_id}'
 
-    tg_bot_hash = api_info["tg_bot_hash"]
+    tg_bot_hash = os.getenv('TG_BOT_HASH')
     # session_file = 'session'
 
     tg_bot = Bot(token=tg_bot_hash)
     
     config = load_config('./utilities/brokers.json')
-    filename = re.sub(r",", "_", f'./results/results_{area}.jsonl')
     # Define the API endpoint
-    api_url = 'http://localhost:5000/ads'
+    api_url = 'http://localhost:5000/listings'
 
     scraper_logger.info('### Scraper started ###')
 
@@ -349,13 +352,13 @@ if __name__ == "__main__":
     for broker in config['brokers']:
         domain = broker['domain']
         url = broker['url']
-        ad_selector = broker['ad_selector']
+        listing_selector = broker['listing_selector']
         next_button_selector = broker['next_button_selector']
         cookie_modal_selector = broker['cookie_modal_selector']
 
         # Call scrape function for the current broker
         # Use the event loop you set up earlier
-        coroutine = scrape(url, domain, ad_selector, next_button_selector, cookie_modal_selector)
+        coroutine = scrape(url, domain, listing_selector, next_button_selector, cookie_modal_selector)
         try:
             loop.run_until_complete(coroutine)
         except Exception as e:
