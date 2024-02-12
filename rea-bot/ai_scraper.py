@@ -64,30 +64,29 @@ def save_data(data):
 
 async def send_message_with_retry(message, max_retries=3):
     attempt = 0
-    while attempt < max_retries:
-        try:
-            scraper_logger.info('Running query...')
-            response = None
-            for chunk in perplexity.search(message):
-                response = chunk  # Assuming the last chunk contains the answer
-            
-            # After iterating over the generator, check if the response contains 'answer'
-            if response and 'answer' in response:
-                scraper_logger.info(response['answer'])
-                return response['answer']
+    try:
+        scraper_logger.info('Running query...')
+        response = None
+        for chunk in perplexity.search(message):
+            response = chunk  # Assuming the last chunk contains the answer
+        
+        # After iterating over the generator, check if the response contains 'answer'
+        if response and 'answer' in response:
+            scraper_logger.info(response['answer'])
+            return response['answer']
 
-        except e:
-            if 'already running' in str(e):
-                attempt += 1
-                scraper_logger.info(f"Server Error encountered. Retry attempt {attempt}/{max_retries}.")
-                # Since this is an async function, we still need to wait asynchronously.
-                await asyncio.sleep(60)
-            else:
-                scraper_logger.info(f"An unexpected error occurred: {e}")
-                scraper_logger.error(traceback.format_exc())
-                await sys.exit(1)
+    except e:
+        if 'already running' in str(e):
+            attempt += 1
+            scraper_logger.info(f"Server Error encountered. Retry attempt {attempt}/{max_retries}.")
+            # Since this is an async function, we still need to wait asynchronously.
+            await asyncio.sleep(60)
+        else:
+            scraper_logger.info(f"An unexpected error occurred: {e}")
+            scraper_logger.error(traceback.format_exc())
+            await sys.exit(1)
 
-    scraper_logger.info(f"Failed to send message after {max_retries} retries. Skipping message.")
+        scraper_logger.info(f"Failed to send message after {max_retries} retries. Skipping message.")
 
 async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_selector, page_number=1):
     async with async_playwright() as p:
@@ -131,13 +130,6 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
             scraper_logger.info(f"-- Scraping page {page_number}--")
             # Wait for the page to load fully
 
-            # if broker['name'] == 'Vbo':
-            #     html_broker = await page.inner_html('body')
-    
-            #     with open ('./debug/html_' + broker['name'] + '.html', 'w') as file_html:
-            #         file_html.write(html_broker)
-            #     await page.screenshot(path='./debug/screenshot_' + broker['name'] + '.png')
-
             await page.wait_for_load_state()
 
             # Extract data from the page
@@ -151,6 +143,13 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                 scraper_logger.info(f'wait_for_selector({ad_selector})')
                 await page.wait_for_selector(ad_selector)
                 listings = await page.query_selector_all(ad_selector)
+
+            if broker['name'] == 'Pararius':
+                html_broker = await page.inner_html('body')
+    
+                with open ('./debug/html_' + broker['name'] + '.html', 'w') as file_html:
+                    file_html.write(html_broker)
+                await page.screenshot(path='./debug/screenshot_' + broker['name'] + '.png')
             
             for listing in listings:
                     text = await listing.inner_text()

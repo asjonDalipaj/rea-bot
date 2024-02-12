@@ -1,6 +1,22 @@
 {
    "brokers":[
       {
+         "name": "donnevastgoed",
+         "domain": "https://www.donnevastgoed.nl/",
+         "url": "https://www.donnevastgoed.nl/aanbod",
+         "listing_selector":"a.object-a-more",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
+         "name": "huurda",
+         "domain": "https://www.huurda.com",
+         "url": "https://www.huurda.com/huurwoningen/{area}/0-{max_price}/met-foto",
+         "listing_selector":"a[class='block bg-white rounded shadow mb-4']",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
          "name": "House hunting",
          "domain": "https://househunting.nl/",
          "url": "https://househunting.nl/woningaanbod/?type=for-rent&filter_location={area}&street=&km=5&min-price=&max-price={max_price}",
@@ -139,7 +155,7 @@
       {
          "name":"Rotvast",
          "domain":"https://www.rotsvast.nl",
-         "url":"https://www.rotsvast.nl/woningaanbod/?type=2&searchPattern={area}&office=0&maximumPrice[2]={max_price}",
+         "url":"https://www.rotsvast.nl/woningaanbod/?type=2&city={area}%20&office=0&maximumPrice[2]={max_price}",
          "listing_selector":"div[class*=\"clickable-parent\"]",
          "next_button_selector":"",
          "cookie_modal_selector":""
