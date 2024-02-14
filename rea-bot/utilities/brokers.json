@@ -1,6 +1,22 @@
 {
    "brokers":[
       {
+         "name": "Huizenbalie",
+         "domain": "https://huizenbalie.nl/",
+         "url": "https://huizenbalie.nl/aanbod-van-woningen/?status=any&keyword={area}",
+         "listing_selector":"article.property-listing-simple",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
+         "name": "Welwonend",
+         "domain": "https://www.welwonend.nl/",
+         "url": "https://www.welwonend.nl/aanbod/woningaanbod/-{max_price}/huur/provincie-{area}/",
+         "listing_selector":"li.al4woning",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
          "name": "donnevastgoed",
          "domain": "https://www.donnevastgoed.nl/",
          "url": "https://www.donnevastgoed.nl/aanbod",
@@ -123,7 +139,7 @@
       {
          "name":"Funda",
          "domain":"https://www.funda.nl",
-         "url":"https://www.funda.nl/zoeken/huur?selected_area=%5B%22{area}%22%5D&search_result={page_number}&price=%22-1250%22&sort=%22date_down%22",
+         "url":"https://www.funda.nl/zoeken/huur?selected_area=%5B%22{area}%22%5D&search_result=1&price=%22-1250%22&sort=%22date_down%22",
          "listing_selector":"div[data-test-id=\"search-result-item\"]",
          "next_button_selector":"li:not(.disabled) > a > span:has-text(\"Volgende\")",
          "cookie_modal_selector":".didomi-popup-backdrop"

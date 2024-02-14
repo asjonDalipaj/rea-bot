@@ -64,31 +64,32 @@ def save_data(data):
 
 async def send_message_with_retry(message, max_retries=3):
     attempt = 0
-    try:
-        scraper_logger.info('Running query...')
-        response = None
-        for chunk in perplexity.search(message):
-            response = chunk  # Assuming the last chunk contains the answer
-        
-        # After iterating over the generator, check if the response contains 'answer'
-        if response and 'answer' in response:
-            scraper_logger.info(response['answer'])
-            return response['answer']
+    while attempt < max_retries:
+        try:
+            scraper_logger.info('Running query...')
+            response = None
+            for chunk in perplexity.search(message):
+                response = chunk  # Assuming the last chunk contains the answer
+            
+            # After iterating over the generator, check if the response contains 'answer'
+            if response and 'answer' in response:
+                scraper_logger.info(response['answer'])
+                return response['answer']
 
-    except e:
-        if 'already running' in str(e):
-            attempt += 1
-            scraper_logger.info(f"Server Error encountered. Retry attempt {attempt}/{max_retries}.")
-            # Since this is an async function, we still need to wait asynchronously.
-            await asyncio.sleep(60)
-        else:
-            scraper_logger.info(f"An unexpected error occurred: {e}")
-            scraper_logger.error(traceback.format_exc())
-            await sys.exit(1)
+        except Exception as e:
+            if 'already running' in str(e):
+                attempt += 1
+                scraper_logger.info(f"Server Error encountered. Retry attempt {attempt}/{max_retries}.")
+                await asyncio.sleep(60)
+            else:
+                scraper_logger.info(f"An unexpected error occurred: {e}")
+                scraper_logger.error(traceback.format_exc())
+                return None  # or handle the error appropriately
 
-        scraper_logger.info(f"Failed to send message after {max_retries} retries. Skipping message.")
+    scraper_logger.info(f"Failed to send message after {max_retries} retries. Skipping message.")
+    return None  # or handle the failure case appropriately
 
-async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_selector, page_number=1):
+async def scrape(broker, area, max_price):
     async with async_playwright() as p:
 
         browser = await p.chromium.launch(headless=True) 
@@ -107,13 +108,13 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
         
         page = await context.new_page()
 
-        url = url.format(area=area, max_price=max_price, page_number=page_number)
-        scraper_logger.info(f"Scraping {broker['name']} - {url}")
+        url = broker.url.format(area=area, max_price=max_price)
+        scraper_logger.info(f"Scraping {broker.name} - {url}")
         
         await page.goto(url)
         
         # Remove cookie dialog for cleaning up page
-        if cookie_modal_selector:
+        if broker.cookie_modal_selector:
             eval_func = """() => {{
                 const modal = document.querySelector('{cookie_modal_selector}');
                 if (modal) {{
@@ -121,35 +122,33 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                 }}
             }}"""
 
-            eval_func = eval_func.format(cookie_modal_selector=cookie_modal_selector)
+            eval_func = eval_func.format(cookie_modal_selector=broker.cookie_modal_selector)
             await page.evaluate(eval_func)
         else:
-            scraper_logger.info("No cookie modal defined in config, continuing")
+            scraper_logger.info(f"No cookie modal defined in config for {broker.name}, continuing")
 
         try:
-            scraper_logger.info(f"-- Scraping page {page_number}--")
             # Wait for the page to load fully
-
             await page.wait_for_load_state()
 
             # Extract data from the page
             # html_broker = await page.inner_html('body')
-            listings = await page.query_selector_all(ad_selector)
-            
+            listings = await page.query_selector_all(broker.listing_selector)
+
             href = None
             
             # Wait for the selector instead if no ad is found
             if not listings:
-                scraper_logger.info(f'wait_for_selector({ad_selector})')
-                await page.wait_for_selector(ad_selector)
-                listings = await page.query_selector_all(ad_selector)
+                scraper_logger.info(f'wait_for_selector({broker.listing_selector})')
+                await page.wait_for_selector(broker.listing_selector)
+                listings = await page.query_selector_all(broker.listing_selector)
 
-            if broker['name'] == 'Pararius':
-                html_broker = await page.inner_html('body')
-    
-                with open ('./debug/html_' + broker['name'] + '.html', 'w') as file_html:
-                    file_html.write(html_broker)
-                await page.screenshot(path='./debug/screenshot_' + broker['name'] + '.png')
+            # if broker.name == 'Pararius':
+                # html_broker = await page.inner_html('body')
+
+                # with open ('./debug/html_' + broker.name + '.html', 'w') as file_html:
+                #     file_html.write(html_broker)
+                # await page.screenshot(path='./debug/screenshot_' + broker.name + '.png')
             
             for listing in listings:
                     text = await listing.inner_text()
@@ -168,8 +167,8 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                         href = matches[0]
 
                         # Check whether missing domain url
-                        if domain not in href:
-                            href = domain + href
+                        if broker.domain not in href:
+                            href = broker.domain + href
                         scraper_logger.info(f'Processing listing - {href}')
 
                         # Todo last - to improve through all sites?
@@ -249,7 +248,6 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                             # scraper_logger.info(f'Response text: {response_text}')
 
                             save_data(updated_response_text)
-                            # scraper_logger.info(f"Data - page {page_number}: {data}")
                             
                             # Send notification
                             
@@ -292,17 +290,54 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                     # if next_button:
                     #     scraper_logger.info(f"Another page for {area}")     
                     #     await scrape(area, url, listing_selector, next_button_selector, page_number + 1)
-        except PlaywrightTimeoutError as e:
-            scraper_logger.info(f"Timeout reaching {broker['name']}, or simply, no listings to scrape - skipping!")
-            scraper_logger.info(f"-- End {broker['name']} --")
+        # except PlaywrightTimeoutError as e:
+        #     scraper_logger.info(f"Timeout reaching {broker.name}, or simply, no listings to scrape - skipping!")
+        #     scraper_logger.info(f"-- End {broker.name} --")
         except Exception as e:
-            if href:
-                scraper_logger.error(f"There was an error processing this listing - {href}")
+            # if href:
+            #     scraper_logger.error(f"There was an error processing this listing - {href}")
             scraper_logger.error(traceback.format_exc())
         finally:
             await browser.close()
 
-    scraper_logger.info(f"-- End {broker['name']} --")
+    scraper_logger.info(f"-- End {broker.name} --")
+
+# Broker class to hold the configuration and state
+class Broker:
+    def __init__(self, config):
+        # Set attributes directly from the config dictionary
+        self.name = config.get('name')
+        self.domain = config.get('domain')
+        self.url = config.get('url')
+        self.listing_selector = config.get('listing_selector')
+        self.next_button_selector = config.get('next_button_selector')
+        self.cookie_modal_selector = config.get('cookie_modal_selector')
+
+# Function to load configurations
+def load_config(config_file):
+    with open(config_file, 'r') as file:
+        config = json.load(file)
+
+    scraper_logger.info('Brokers: %s' % config['brokers'])
+    return [Broker(broker_config) for broker_config in config['brokers']]
+
+# Async function to scrape all brokers concurrently
+async def scrape_all_brokers(brokers, area, max_price):
+    scrape_tasks = []
+    for broker in brokers:
+        # Create the scrape coroutine for each broker
+        scrape_task = scrape(
+            broker,
+            area,
+            max_price
+        )
+        scrape_tasks.append(scrape_task)
+    results = await asyncio.gather(*scrape_tasks, return_exceptions=True)
+    # Handle the results
+    for broker, result in zip(brokers, results):
+        if isinstance(result, Exception):
+            scraper_logger.info(f"An error occurred while scraping {broker.name}: {result}")
+            scraper_logger.error(traceback.format_exc())
 
 if __name__ == "__main__":
     # Parse arguments
@@ -316,57 +351,26 @@ if __name__ == "__main__":
     area = args.area
     max_price = args.max_price
 
-    # Function to load configurations
-    def load_config(config_file):
-        with open(config_file, 'r') as file:
-            return json.load(file)
-
     # Config
     # Read API key from a file and pass it to the function
     load_dotenv()
-
     api_key = os.getenv('API_KEY')
-    # Replacing with Perplexity
     perplexity = Perplexity()
-        
+
     # Setup Telegram
     # Prepend '-' for using channel ID
     tg_channel_id = os.getenv('TG_CHANNEL_ID')
     tg_channel_id = f'-{tg_channel_id}'
-
     tg_bot_hash = os.getenv('TG_BOT_HASH')
-    # session_file = 'session'
-
     tg_bot = Bot(token=tg_bot_hash)
     
-    config = load_config('./utilities/brokers.json')
-    # Define the API endpoint
+    # Load configuration for brokers
+    brokers = load_config('./utilities/brokers.json')
     api_url = 'http://localhost:5000/listings'
-
     scraper_logger.info('### Scraper started ###')
 
-    # Setup your asyncio event loop before the loop
-    loop = asyncio.get_event_loop()
-
-    # Loop through all the brokers in the config
-    for broker in config['brokers']:
-        domain = broker['domain']
-        url = broker['url']
-        listing_selector = broker['listing_selector']
-        next_button_selector = broker['next_button_selector']
-        cookie_modal_selector = broker['cookie_modal_selector']
-
-        # Call scrape function for the current broker
-        # Use the event loop you set up earlier
-        coroutine = scrape(url, domain, listing_selector, next_button_selector, cookie_modal_selector)
-        try:
-            loop.run_until_complete(coroutine)
-        except Exception as e:
-            scraper_logger.info(f"An error occurred while scraping {broker['name']} in {area}: {e}")
-            scraper_logger.error(traceback.format_exc())
-
-    # Close the event loop after all tasks are done
-    loop.close()
-
+    # Run the async scrape for all brokers
+    asyncio.run(scrape_all_brokers(brokers, area, max_price))
+    
     # Close perplexity connection
     perplexity.close()
