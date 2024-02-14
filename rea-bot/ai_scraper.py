@@ -13,6 +13,8 @@ import argparse
 from perplexity import Perplexity
 from telegram import Bot
 from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError
+from concurrent.futures import ProcessPoolExecutor
+import concurrent.futures
 
 scraper_logger = setup_logger('scraper_logger', './logs/scraper_logfile.log')
 
@@ -318,26 +320,34 @@ def load_config(config_file):
     with open(config_file, 'r') as file:
         config = json.load(file)
 
-    scraper_logger.info('Brokers: %s' % config['brokers'])
     return [Broker(broker_config) for broker_config in config['brokers']]
 
-# Async function to scrape all brokers concurrently
-async def scrape_all_brokers(brokers, area, max_price):
-    scrape_tasks = []
-    for broker in brokers:
-        # Create the scrape coroutine for each broker
-        scrape_task = scrape(
-            broker,
-            area,
-            max_price
-        )
-        scrape_tasks.append(scrape_task)
-    results = await asyncio.gather(*scrape_tasks, return_exceptions=True)
-    # Handle the results
-    for broker, result in zip(brokers, results):
-        if isinstance(result, Exception):
-            scraper_logger.info(f"An error occurred while scraping {broker.name}: {result}")
-            scraper_logger.error(traceback.format_exc())
+# This function will run in separate processes and cannot be a coroutine
+def run_scrape_in_process(broker, area, max_price):
+    # Since this runs in a new process, we need to set up a new event loop
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    # Now we can run the coroutine scrape in the new event loop
+    result = loop.run_until_complete(scrape(broker, area, max_price))
+    loop.close()
+    return result
+
+def scrape_all_brokers(brokers, area, max_price):
+    # We use ProcessPoolExecutor to run things in parallel processes
+    with ProcessPoolExecutor() as executor:
+        # Create a list to hold all the futures
+        futures = [
+            executor.submit(run_scrape_in_process, broker, area, max_price)
+            for broker in brokers
+        ]
+        
+        for future in concurrent.futures.as_completed(futures):
+            try:
+                result = future.result()
+                # Handle the result
+                print(f"Scraping result: {result}")
+            except Exception as exc:
+                print(f"An exception occurred: {exc}")
 
 if __name__ == "__main__":
     # Parse arguments
@@ -369,8 +379,8 @@ if __name__ == "__main__":
     api_url = 'http://localhost:5000/listings'
     scraper_logger.info('### Scraper started ###')
 
-    # Run the async scrape for all brokers
-    asyncio.run(scrape_all_brokers(brokers, area, max_price))
+    # Run the scrape for all brokers
+    scrape_all_brokers(brokers, area, max_price)
     
     # Close perplexity connection
     perplexity.close()
