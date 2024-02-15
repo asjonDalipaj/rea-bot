@@ -11,34 +11,65 @@ from dotenv import load_dotenv
 import requests
 import argparse
 from perplexity import Perplexity
-from telegram import Bot
 from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError
 
 scraper_logger = setup_logger('scraper_logger', './logs/scraper_logfile.log')
 
-# Utilities func
-def generate_md5_hash(data_dict):
-    # Create a string concatenation of the 'address' and 'price' fields
-    hash_input = data_dict['address'] + data_dict['price']
-    # Encode the string to bytes
-    hash_input_encoded = hash_input.encode('utf-8')
-    # Create an MD5 hash object and update it with the encoded string
-    md5_hash = hashlib.md5()
-    md5_hash.update(hash_input_encoded)
-    # Return the hexadecimal digest of the hash
-    return md5_hash.hexdigest()
+def get_users():
+    response = requests.get(f'{DB_API_BASE_URL}/users')
+    if response.status_code == 200:
+        return response.json()
+    else:
+        return []
+
+def get_filters_for_user(user_id):
+    response = requests.get(f'{DB_API_BASE_URL}/users/{user_id}/filters')
+    if response.status_code == 200:
+        return response.json()
+    else:
+        return []
+
+def listing_matches_filters(listing, filters):
+    # Check if the listing matches the given filters
+    # Convert price and area to integers for comparison
+    listing_price = int(listing['price'])
+    listing_area = int(listing['area'])
+    for filter in filters:
+        if (filter['furnished'] == listing['furnished'] and
+            filter['including_bills'] == listing['including_bills'] and
+            int(filter['min_price']) <= listing_price <= int(filter['max_price']) and
+            int(filter['max_sqm']) <= listing_area <= int(filter['max_sqm'])):
+            return True
+    return False
+
+def notify_flask_app(user_id, listing):
+    notification_data = {'user_id': user_id, 'listing': listing}
+    response = requests.post(f'{DB_API_BASE_URL}/notify', json=notification_data)
+    return response.status_code
+
+def check_and_notify(listing):
+    users = get_users()
+    print('Users: %s' % users)
+    for user in users:
+        print('User: %s' % user)
+        filters = get_filters_for_user(user['userid'])
+        print('Filters: %s', filters)
+        if listing_matches_filters(listing, filters):
+            print('Matches filters, sending notification')
+            notify_flask_app(user['userid'], listing)
 
 def cleanse(response_text):
-    # Split the text into lines
-    lines = response_text.splitlines()
+    start = response_text.find('{')
+    
+    # We add 1 to include the closing brace itself in the slice
+    end = response_text.rfind('}') + 1
 
-    # Ensure there are at least two lines to remove
-    if 'json' in response_text:
-        # Remove the first and last lines
-        lines = lines[1:-1]
-
-    # Join the remaining lines back into a single string
-    cleaned_text = '\n'.join(lines)
+    # If both braces are found, slice the string
+    if start != -1 and end != -1:
+        cleaned_text = response_text[start:end]
+    else:
+        # If the braces are not found, return the original text
+        cleaned_text = response_text
 
     return cleaned_text
 
@@ -55,7 +86,7 @@ def save_data(data):
         scraper_logger.info("New data is not valid JSON and cannot be appended")
     
     # Make a POST request to the insert endpoint
-    response = requests.post(api_url, json=new_data)
+    response = requests.post(f'{DB_API_BASE_URL}/listings', json=new_data)
 
     if response.status_code == 201:
         scraper_logger.info("Listing added successfully")
@@ -179,7 +210,7 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                         }
 
                         # Send a GET request with the query parameters
-                        response = requests.get(api_url, params=params)
+                        response = requests.get(f'{DB_API_BASE_URL}/listings', params=params)
 
                         # Check if the request was successful
                         if response.status_code == 200 and response.json():
@@ -189,7 +220,7 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                         else:
 
                             # Delay for not overcrowding the servers
-                            await asyncio.sleep(10)
+                            # await asyncio.sleep(10)
                             ## Call AI ##
 
                             # Create a new context with a different user agent for each listing
@@ -217,6 +248,7 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                                 "bedrooms":"",
                                 "energy_label":""
                                 "furnished":""
+                                "including_bills":""
                             }
 
                             Format of the fields:
@@ -226,6 +258,7 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                             bedrooms - a string 
                             energy_label - a string
                             furnished - a string, true or false
+                            including_bills - a string, true or false
 
                             Important! Limit responses to a valid JSON, no explanatory text. Never truncate the JSON with an ellipsis. Always srurround the values with double quotes and escape quotes with \\. Always omit trailing commas. 
 
@@ -245,40 +278,11 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                             updated_response_text = json.dumps(response_data, ensure_ascii=False)
                             scraper_logger.info(updated_response_text)
 
-                            # response_text = await send_message_with_retry(client, bot, message, 262252582) # a2
-                            # scraper_logger.info(f'Response text: {response_text}')
-
                             save_data(updated_response_text)
                             # scraper_logger.info(f"Data - page {page_number}: {data}")
                             
-                            # Send notification
-                            
-                            notification_message = (
-                                f"🏄 Found new listing!\n"
-                                f"{response_data['address']} - € {response_data['price']} p/m - {response_data['bedrooms']} bedroom(s) - {response_data['area']} m2 - E/L: {response_data['energy_label']}\n"
-                                f"{response_data['listing_link']}"
-                            )
-
-                            # Ensure each line is stripped of leading/trailing whitespace
-                            formatted_msg = "\n".join(line.strip() for line in notification_message.splitlines())
-
-                            applying_msg = (
-                                f"I'm looking for an apartment in Utrecht and I've found your listing at {response_data['address']}.\n"
-                                "I would love to view this apartment!\n"
-                                "My name is Asjon and I am a Software Engineer. My bruto income is €5800 per month. I'm moving in by myself.\n\n"
-                                "I'm available for a viewing as soon as it's possible. Could I come by for a viewing?\n\n"
-                                "You can reach me at +31 683715213 or asjon.dalipaj@gmail.com.\n\n"
-                                "Hope to hear from you!\n"
-                                "Kind regards,\n"
-                                "Asjon"
-                            )
-
-                            # Ensure each line is stripped of leading/trailing whitespace
-                            formatted_apply_msg = "\n".join(line.strip() for line in applying_msg.splitlines())
-
-                            # Send the messages to the channel
-                            await tg_bot.send_message(chat_id=tg_channel_id, text=formatted_msg)
-                            await tg_bot.send_message(chat_id=tg_channel_id, text=formatted_apply_msg)
+                            print('check_and_notify')
+                            check_and_notify(response_data)
 
                             # Close the listing page and context after processing
                             await listing_page.close()
@@ -328,20 +332,10 @@ if __name__ == "__main__":
     api_key = os.getenv('API_KEY')
     # Replacing with Perplexity
     perplexity = Perplexity()
-        
-    # Setup Telegram
-    # Prepend '-' for using channel ID
-    tg_channel_id = os.getenv('TG_CHANNEL_ID')
-    tg_channel_id = f'-{tg_channel_id}'
-
-    tg_bot_hash = os.getenv('TG_BOT_HASH')
-    # session_file = 'session'
-
-    tg_bot = Bot(token=tg_bot_hash)
     
     config = load_config('./utilities/brokers.json')
     # Define the API endpoint
-    api_url = 'http://localhost:5000/listings'
+    DB_API_BASE_URL = 'http://localhost:5000'
 
     scraper_logger.info('### Scraper started ###')
 
