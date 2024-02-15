@@ -144,12 +144,12 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                 await page.wait_for_selector(ad_selector)
                 listings = await page.query_selector_all(ad_selector)
 
-            if broker['name'] == 'Pararius':
-                html_broker = await page.inner_html('body')
+            # if broker['name'] == 'Pararius':
+            #     html_broker = await page.inner_html('body')
     
-                with open ('./debug/html_' + broker['name'] + '.html', 'w') as file_html:
-                    file_html.write(html_broker)
-                await page.screenshot(path='./debug/screenshot_' + broker['name'] + '.png')
+            #     with open ('./debug/html_' + broker['name'] + '.html', 'w') as file_html:
+            #         file_html.write(html_broker)
+            #     await page.screenshot(path='./debug/screenshot_' + broker['name'] + '.png')
             
             for listing in listings:
                     text = await listing.inner_text()

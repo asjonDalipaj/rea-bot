@@ -33,6 +33,14 @@ source venv/bin/activate
 # Install the dependencies
 pip install -r requirements.txt
 
+# Install playwright
+create .env file with the following properties
+TG_BOT_HASH=telegrambothash
+TG_CHANNEL_ID=telegramchannelid
+
+# Install playwright
+playwright install
+
 # Setup Poe token
 I've used an existing project for using Poe in python - thanks to [poe-wrapper](https://pypi.org/project/poe-api-wrapper/))
 Follow their guide for getting a Poe token. Then replace it into the code:
