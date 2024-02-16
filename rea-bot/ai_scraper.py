@@ -37,8 +37,9 @@ def listing_matches_filters(listing, filters):
     for filter in filters:
         if (filter['furnished'] == listing['furnished'] and
             filter['including_bills'] == listing['including_bills'] and
-            int(filter['min_price']) <= listing_price <= int(filter['max_price']) and
-            int(filter['max_sqm']) <= listing_area <= int(filter['max_sqm'])):
+            # int(filter['min_price']) <= listing_price <= int(filter['max_price']) and
+            # int(filter['max_sqm']) <= listing_area <= int(filter['max_sqm'])):
+            int(filter['min_price']) <= listing_price <= int(filter['max_price'])):
             return True
     return False
 
@@ -49,13 +50,13 @@ def notify_flask_app(user_id, listing):
 
 def check_and_notify(listing):
     users = get_users()
-    print('Users: %s' % users)
+    scraper_logger.info('Users: %s' % users)
     for user in users:
-        print('User: %s' % user)
+        scraper_logger.info('User: %s' % user)
         filters = get_filters_for_user(user['userid'])
-        print('Filters: %s', filters)
+        scraper_logger.info(f'Filters: ', filters)
         if listing_matches_filters(listing, filters):
-            print('Matches filters, sending notification')
+            scraper_logger.info('Matches filters, sending notification')
             notify_flask_app(user['userid'], listing)
 
 def cleanse(response_text):
@@ -220,7 +221,7 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                         else:
 
                             # Delay for not overcrowding the servers
-                            # await asyncio.sleep(10)
+                            await asyncio.sleep(10)
                             ## Call AI ##
 
                             # Create a new context with a different user agent for each listing
@@ -281,7 +282,7 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                             save_data(updated_response_text)
                             # scraper_logger.info(f"Data - page {page_number}: {data}")
                             
-                            print('check_and_notify')
+                            scraper_logger.info('check_and_notify')
                             check_and_notify(response_data)
 
                             # Close the listing page and context after processing

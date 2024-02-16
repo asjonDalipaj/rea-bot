@@ -34,7 +34,7 @@ migrate = Migrate(app, db)
 # metadata = MetaData()
 
 class User(db.Model):
-    userid = db.Column(db.String, primary_key=True)
+    userid = db.Column(db.String, primary_key=True, unique=True)
     username = db.Column(db.String, nullable=False, default='NoUsernameYet')
 
     def to_dict(self):
@@ -57,7 +57,7 @@ class Filter(db.Model):
 
     def to_dict(self):
         return {
-            'user_id': self.userid,
+            'userid': self.userid,
             'furnished': self.furnished,
             'including_bills': self.including_bills,
             'min_price': self.min_price,
@@ -176,11 +176,12 @@ def notify():
 @app.route('/users', methods=['GET'])
 def get_users():
     users = User.query.all()
-    users_data = [{'userid': user.userid, 'username': user.username} for user in users]  # Customize the fields as needed
+    users_data = [{'userid': user.userid, 'username': user.username} for user in users]
     return jsonify(users_data), 200
 
-@app.route('/users/userid/filters', methods=['GET'])
+@app.route('/users/<string:userid>/filters', methods=['GET'])
 def get_user_filters(userid):
+    print('User id from ai_scraper: %s' % userid)
     user_filters = Filter.query.filter_by(userid=userid).all()
     filters_data = [{
         'id': filter.id,
