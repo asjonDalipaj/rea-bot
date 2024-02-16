@@ -43,8 +43,8 @@ def listing_matches_filters(listing, filters):
             return True
     return False
 
-def notify_flask_app(user_id, listing):
-    notification_data = {'user_id': user_id, 'listing': listing}
+def notify_flask_app(chat_id, listing):
+    notification_data = {'chat_id': chat_id, 'listing': listing}
     response = requests.post(f'{DB_API_BASE_URL}/notify', json=notification_data)
     return response.status_code
 
@@ -53,11 +53,11 @@ def check_and_notify(listing):
     scraper_logger.info('Users: %s' % users)
     for user in users:
         scraper_logger.info('User: %s' % user)
-        filters = get_filters_for_user(user['userid'])
-        scraper_logger.info(f'Filters: ', filters)
+        filters = get_filters_for_user(user['id'])
+        scraper_logger.info('Filters: %s', filters)
         if listing_matches_filters(listing, filters):
             scraper_logger.info('Matches filters, sending notification')
-            notify_flask_app(user['userid'], listing)
+            notify_flask_app(user['chat_id'], listing)
 
 def cleanse(response_text):
     start = response_text.find('{')

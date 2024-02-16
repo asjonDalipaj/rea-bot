@@ -2,7 +2,6 @@ from logger import setup_logger
 from flask import Flask, request, jsonify
 import asyncio
 import os
-from sqlalchemy import create_engine, MetaData, Table
 from telegram import Bot
 from dotenv import load_dotenv
 from flask import Flask
@@ -12,10 +11,6 @@ from flask_migrate import Migrate
 # Config
 # Read API key from a file and pass it to the function
 load_dotenv()
-
-# Prepend '-' for using channel ID
-tg_channel_id = os.getenv('TG_CHANNEL_ID')
-tg_channel_id = f'-{tg_channel_id}'
 
 tg_bot_hash = os.getenv('TG_BOT_HASH')
 # session_file = 'session'
@@ -34,18 +29,19 @@ migrate = Migrate(app, db)
 # metadata = MetaData()
 
 class User(db.Model):
-    userid = db.Column(db.String, primary_key=True, unique=True)
+    id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String, nullable=False, default='NoUsernameYet')
+    chat_id = db.Column(db.String, nullable=True)
 
     def to_dict(self):
         return {
-            'userid': self.userid,
-            'username': self.username
+            'username': self.username,
+            'chat_id': self.chat_id
         }
 
 class Filter(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    userid = db.Column(db.String, db.ForeignKey('user.userid'), nullable=False)
+    userid = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     furnished = db.Column(db.String, nullable=False)
     including_bills = db.Column(db.String, nullable=False)
     min_price = db.Column(db.String, nullable=True)
@@ -53,7 +49,7 @@ class Filter(db.Model):
     min_sqm = db.Column(db.String, nullable=True)
     max_sqm = db.Column(db.String, nullable=True)
     
-    user = db.relationship('User', backref=db.backref('filters', lazy=True))
+    user = db.relationship('User', backref=db.backref('filter', lazy=True))
 
     def to_dict(self):
         return {
@@ -154,34 +150,40 @@ def create_listing():
 @app.route('/notify', methods=['POST'])
 def notify():
     data = request.json
-    user_id = data['user_id']
-    listing_data = data['listing_data']
-
-    # # Implement logic to find the user's filters
-    # user_filters = Filter.query.filter_by(user_id=user_id).first()
-
-    # listing_msg, applying_msg = create_notification_message(listing_data)
-    
-    # if user_filters and does_listing_match_filters(listing_data, user_filters):
-    #     asyncio.run(send_telegram_message(user_id, listing_msg, applying_msg))
-    #     return jsonify({"status": "success", "message": "Notification sent"}), 200
-    # else:
-    #     return jsonify({"status": "success", "message": "No matching filters"}), 200
+    chat_id = data['chat_id']
+    listing_data = data['listing']
     
     listing_msg, applying_msg = create_notification_message(listing_data)
 
-    asyncio.run(send_telegram_message(user_id, listing_msg, applying_msg))
+    # Todo - manage concurrent notifications
+    asyncio.run(send_telegram_message(chat_id, listing_msg, applying_msg))
     return jsonify({"status": "success", "message": "Notification sent"}), 200
     
 @app.route('/users', methods=['GET'])
 def get_users():
     users = User.query.all()
-    users_data = [{'userid': user.userid, 'username': user.username} for user in users]
+    users_data = [{'id': user.id, 'username': user.username, 'chat_id': user.chat_id} for user in users]
     return jsonify(users_data), 200
+
+@app.route('/users', methods=['POST'])
+def add_user():
+    username = request.json.get('username')
+    chat_id = request.json.get('chat_id')
+    if chat_id:
+        user = User.query.filter_by(username=username).first()
+        if not user:
+            user = User(username = username, chat_id = chat_id)
+            db.session.add(user)
+            db.session.commit()
+            return jsonify({'message': 'User added successfully'}), 201
+        else:
+            return jsonify({'message': 'User already exists'}), 200
+    else:
+        return jsonify({'message': 'Bad request, chat_id not provided'}), 400
+
 
 @app.route('/users/<string:userid>/filters', methods=['GET'])
 def get_user_filters(userid):
-    print('User id from ai_scraper: %s' % userid)
     user_filters = Filter.query.filter_by(userid=userid).all()
     filters_data = [{
         'id': filter.id,
@@ -238,10 +240,10 @@ def does_listing_match_filters(listing_data, user_filters):
             return True
     return False
 
-def send_telegram_message(user_id, listing_msg, applying_msg):
+async def send_telegram_message(chat_id, listing_msg, applying_msg):
     # Send the messages to the channel
-    tg_bot.send_message(chat_id=user_id, text=listing_msg)
-    tg_bot.send_message(chat_id=user_id, text=applying_msg)
+    await tg_bot.send_message(chat_id=chat_id, text=listing_msg)
+    await tg_bot.send_message(chat_id=chat_id, text=applying_msg)
 
 if __name__ == '__main__':
     app.run(debug=False)
