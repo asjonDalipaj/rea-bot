@@ -30,17 +30,38 @@ def get_filters_for_user(user_id):
         return []
 
 def listing_matches_filters(listing, filters):
-    # Check if the listing matches the given filters
-    # Convert price and area to integers for comparison
-    listing_price = int(listing['price'])
+    # Convert listing values to appropriate types
+    listing_price = float(listing['price'])
     listing_area = int(listing['area'])
+    including_bills = listing['including_bills'] == 'true'
+    furnished = listing['furnished'] == 'true'
+
+    # Log listing information
+    scraper_logger.info(f'Listing price: {listing_price}')
+    scraper_logger.info(f'Listing area: {listing_area}')
+
+    # Iterate over filters
     for filter in filters:
-        if (filter['furnished'] == listing['furnished'] and
-            filter['including_bills'] == listing['including_bills'] and
-            # int(filter['min_price']) <= listing_price <= int(filter['max_price']) and
-            # int(filter['max_sqm']) <= listing_area <= int(filter['max_sqm'])):
-            int(filter['min_price']) <= listing_price <= int(filter['max_price'])):
+        scraper_logger.info('Checking on filters')
+
+        # Handle None for min and max price
+        min_price = float(filter['min_price']) if filter['min_price'] is not None else float('-inf')
+        max_price = float(filter['max_price']) if filter['max_price'] is not None else float('inf')
+
+        # Adjust price if not including bills
+        adjusted_price = listing_price + 160 if not including_bills else listing_price
+
+        # Handle None for min and max square meters
+        min_sqm = int(filter['min_sqm']) if filter['min_sqm'] is not None else 0
+        max_sqm = int(filter['max_sqm']) if filter['max_sqm'] is not None else float('inf')
+
+        # Check if listing matches the filter criteria
+        if (furnished or filter['furnished'] is None) and \
+           (min_price <= adjusted_price <= max_price) and \
+           (min_sqm <= listing_area <= max_sqm):
             return True
+
+    # If no filters match, return False
     return False
 
 def notify_flask_app(chat_id, listing):
@@ -49,6 +70,7 @@ def notify_flask_app(chat_id, listing):
     return response.status_code
 
 def check_and_notify(listing):
+    # Todo manage if api is down
     users = get_users()
     scraper_logger.info('Users: %s' % users)
     for user in users:
@@ -269,7 +291,7 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                             # scraper_logger.info(f'message: {message}')
                             # response_text = await send_message_with_retry(client, bot, message, 270446664) # chinchilla
                             response_text = await send_message_with_retry(message) # Perplexity
-                            
+
                             # Looks like cleanse is not needed anymore? :D
                             response_text = cleanse(response_text)
                             response_data = json.loads(response_text)
