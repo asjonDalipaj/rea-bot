@@ -36,10 +36,6 @@ def listing_matches_filters(listing, filters):
     including_bills = listing['including_bills'] == 'true'
     furnished = listing['furnished'] == 'true'
 
-    # Log listing information
-    scraper_logger.info(f'Listing price: {listing_price}')
-    scraper_logger.info(f'Listing area: {listing_area}')
-
     # Iterate over filters
     for filter in filters:
         scraper_logger.info('Checking on filters')
@@ -72,13 +68,13 @@ def notify_flask_app(chat_id, listing):
 def check_and_notify(listing):
     # Todo manage if api is down
     users = get_users()
-    scraper_logger.info('Users: %s' % users)
+    # scraper_logger.info('Users: %s' % users)
     for user in users:
-        scraper_logger.info('User: %s' % user)
+        # scraper_logger.info('User: %s' % user)
         filters = get_filters_for_user(user['id'])
-        scraper_logger.info('Filters: %s', filters)
+        # scraper_logger.info('Filters: %s', filters)
         if listing_matches_filters(listing, filters):
-            scraper_logger.info('Matches filters, sending notification')
+            # scraper_logger.info('Matches filters, sending notification')
             notify_flask_app(user['chat_id'], listing)
 
 def cleanse(response_text):
@@ -299,12 +295,12 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                             # Add a new field with the key 'listing_link' and the value of href
                             response_data['listing_link'] = href
                             updated_response_text = json.dumps(response_data, ensure_ascii=False)
-                            scraper_logger.info(updated_response_text)
+                            # scraper_logger.info(updated_response_text)
 
                             save_data(updated_response_text)
                             # scraper_logger.info(f"Data - page {page_number}: {data}")
                             
-                            scraper_logger.info('check_and_notify')
+                            # scraper_logger.info('check_and_notify')
                             check_and_notify(response_data)
 
                             # Close the listing page and context after processing
