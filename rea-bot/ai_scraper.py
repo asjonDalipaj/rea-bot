@@ -39,42 +39,47 @@ def listing_matches_filters(listing, filters):
     listing_price = float(listing['price'])
     listing_area = int(listing['area'])
     listing_bedrooms = int(listing['bedrooms'])
-    listing_address = normalize_string(listing['address'])  # Normalize the listing address
-    including_bills = listing['including_bills'] == 'true'
-    furnished = listing['furnished'] == 'true'
+    listing_address = normalize_string(listing['address'])
+    including_bills = listing['including_bills'].lower() == 'true'
+    furnished = listing['furnished'].lower() == 'true'
+
+    # scraper_logger.info('Listing: %s' % listing)
 
     # Iterate over filters
-    for filter in filters:
-        scraper_logger.info('Checking on filters')
+    for idx, filter in enumerate(filters):
+        # scraper_logger.info(f'Checking filter {idx}: {filter}')
 
-        # Handle None for min and max price
-        min_price = float(filter['min_price']) if filter['min_price'] is not None else float('-inf')
-        max_price = float(filter['max_price']) if filter['max_price'] is not None else float('inf')
+        # Extract and normalize filter criteria
+        min_price = float(filter.get('min_price', 0))
+        max_price = float(filter.get('max_price', float('inf')))
+        min_sqm = int(filter.get('min_sqm', 0))
+        max_sqm = int(filter.get('max_sqm', float('inf')))
+        min_bedroom = int(filter.get('min_bedroom', 0))
+        filter_city = normalize_string(filter['city']) if filter['city'] else listing_address
+        
+        # Calculate adjusted price based on bills inclusion
+        adjusted_price = listing_price + 160 if not including_bills and filter.get('including_bills') else listing_price
 
-        # Adjust price if not including bills
-        adjusted_price = listing_price + 160 if not including_bills else listing_price
+        # scraper_logger.info(f"Filter {idx} - Price Range: {min_price} <= {adjusted_price} <= {max_price}")
+        # scraper_logger.info(f"Filter {idx} - Area Range: {min_sqm} <= {listing_area} <= {max_sqm}")
+        # scraper_logger.info(f"Filter {idx} - Bedrooms: {min_bedroom} <= {listing_bedrooms}")
+        # scraper_logger.info(f"Filter {idx} - City Match: {filter_city} in {listing_address}")
 
-        # Handle None for min and max square meters
-        min_sqm = int(filter['min_sqm']) if filter['min_sqm'] is not None else 0
-        max_sqm = int(filter['max_sqm']) if filter['max_sqm'] is not None else float('inf')
+        # Check if the listing matches the filter
+        is_furnished_match = (filter.get('furnished') is None or filter['furnished'].lower() == str(furnished).lower())
+        is_bills_included_match = (filter.get('including_bills') is None or filter['including_bills'].lower() == str(including_bills).lower())
+        is_price_match = min_price <= adjusted_price <= max_price
+        is_area_match = min_sqm <= listing_area <= max_sqm
+        is_bedroom_match = min_bedroom <= listing_bedrooms
+        is_city_match = filter_city in listing_address
 
-        # Handle None for min_bedroom
-        min_bedroom = int(filter['min_bedroom']) if filter['min_bedroom'] is not None else 0
-
-        # Normalize city in the filter and compare
-        filter_city = normalize_string(filter['city']) if filter['city'] is not None else listing_address
-
-        # Check if listing matches the filter criteria
-        if (furnished or filter['furnished'] is None) and \
-           (min_price <= adjusted_price <= max_price) and \
-           (min_sqm <= listing_area <= max_sqm) and \
-           (min_bedroom <= listing_bedrooms) and \
-           (filter_city in listing_address):
+        if all([is_furnished_match, is_bills_included_match, is_price_match, is_area_match, is_bedroom_match, is_city_match]):
             return True
+        else:
+            scraper_logger.info(f"Listing does not match filter {idx}")
 
-    # If no filters match, return False
+    scraper_logger.info("No filters matched the listing.")
     return False
-
 
 def notify_flask_app(chat_id, listing):
     notification_data = {'chat_id': chat_id, 'listing': listing}
@@ -292,8 +297,8 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                             area - numbers only, must exclude other chars 
                             bedrooms - a string 
                             energy_label - a string
-                            furnished - a string, true or false
-                            including_bills - a string, true or false
+                            furnished - a string, must return true or false
+                            including_bills - a string, must return true or false
 
                             Important! Limit responses to a valid JSON, no explanatory text. Never truncate the JSON with an ellipsis. Always srurround the values with double quotes and escape quotes with \\. Always omit trailing commas. 
 
@@ -304,6 +309,17 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                             # response_text = await send_message_with_retry(client, bot, message, 270446664) # chinchilla
                             response_text = await send_message_with_retry(message) # Perplexity
 
+                            # response_text = """
+                            # {
+                            #     "address":"Schonberglaan 189, 3454HS, Utrecht",
+                            #     "price":"1130",
+                            #     "area":"73",
+                            #     "bedrooms":"3",
+                            #     "energy_label":"A",
+                            #     "furnished":"false",
+                            #     "including_bills":"false"
+                            # }
+                            # """
                             # Looks like cleanse is not needed anymore? :D
                             response_text = cleanse(response_text)
                             response_data = json.loads(response_text)

@@ -54,7 +54,7 @@ class Filter(Base):
     max_price = Column(String, nullable=True)
     min_sqm = Column(String, nullable=True)
     max_sqm = Column(String, nullable=True)
-    min_bedroom = Column(Integer, nullable=True)
+    min_bedroom = Column(Integer, nullable=True, default=1)
     city = Column(String, nullable=False)
     
     user = relationship('User', backref='filter')
@@ -209,7 +209,9 @@ async def get_user_filters(userid):
         'min_price': filter_.min_price,
         'max_price': filter_.max_price,
         'min_sqm': filter_.min_sqm,
-        'max_sqm': filter_.max_sqm
+        'max_sqm': filter_.max_sqm,
+        'min_bedroom': filter_.min_bedroom,
+        'city': filter_.city
     } for filter_ in user_filters]  # Renamed to filter_ to avoid name clash with the built-in filter function
 
     return jsonify(filters_data), 200
