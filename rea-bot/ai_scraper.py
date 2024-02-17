@@ -29,10 +29,17 @@ def get_filters_for_user(user_id):
     else:
         return []
 
+def normalize_string(s):
+    # Convert to lowercase and strip whitespace
+    s = s.lower().strip()
+    return s
+
 def listing_matches_filters(listing, filters):
     # Convert listing values to appropriate types
     listing_price = float(listing['price'])
     listing_area = int(listing['area'])
+    listing_bedrooms = int(listing['bedrooms'])
+    listing_address = normalize_string(listing['address'])  # Normalize the listing address
     including_bills = listing['including_bills'] == 'true'
     furnished = listing['furnished'] == 'true'
 
@@ -51,14 +58,23 @@ def listing_matches_filters(listing, filters):
         min_sqm = int(filter['min_sqm']) if filter['min_sqm'] is not None else 0
         max_sqm = int(filter['max_sqm']) if filter['max_sqm'] is not None else float('inf')
 
+        # Handle None for min_bedroom
+        min_bedroom = int(filter['min_bedroom']) if filter['min_bedroom'] is not None else 0
+
+        # Normalize city in the filter and compare
+        filter_city = normalize_string(filter['city']) if filter['city'] is not None else listing_address
+
         # Check if listing matches the filter criteria
         if (furnished or filter['furnished'] is None) and \
            (min_price <= adjusted_price <= max_price) and \
-           (min_sqm <= listing_area <= max_sqm):
+           (min_sqm <= listing_area <= max_sqm) and \
+           (min_bedroom <= listing_bedrooms) and \
+           (filter_city in listing_address):
             return True
 
     # If no filters match, return False
     return False
+
 
 def notify_flask_app(chat_id, listing):
     notification_data = {'chat_id': chat_id, 'listing': listing}

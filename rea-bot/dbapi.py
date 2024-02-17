@@ -54,6 +54,8 @@ class Filter(Base):
     max_price = Column(String, nullable=True)
     min_sqm = Column(String, nullable=True)
     max_sqm = Column(String, nullable=True)
+    min_bedroom = Column(Integer, nullable=True)
+    city = Column(String, nullable=False)
     
     user = relationship('User', backref='filter')
 
@@ -66,6 +68,8 @@ class Filter(Base):
             'max_price': self.max_price,
             'min_sqm': self.min_sqm,
             'max_sqm': self.max_sqm,
+            'min_bedroom': self.min_bedroom,
+            'city': self.city,
         }
 
 class Listing(Base):
