@@ -4,7 +4,6 @@ import random
 import json
 import re
 import traceback
-import hashlib
 import os
 import sys
 from dotenv import load_dotenv
@@ -295,8 +294,8 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                             address - a string, must be formatted in: street, postal code, city
                             price - numbers only, must exclude other chars 
                             area - numbers only, must exclude other chars 
-                            bedrooms - a string 
-                            energy_label - a string
+                            bedrooms - a string, must return the number of bedrooms only 
+                            energy_label - a string, must return the number of bedrooms only
                             furnished - a string, must return true or false
                             including_bills - a string, must return true or false
 
