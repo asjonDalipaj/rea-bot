@@ -131,7 +131,7 @@
       {
          "name":"Funda",
          "domain":"https://www.funda.nl",
-         "url":"https://www.funda.nl/zoeken/huur?selected_area=%5B%22{area}%22%5D&search_result={page_number}&price=%22-1250%22&sort=%22date_down%22",
+         "url":"https://www.funda.nl/zoeken/huur?selected_area=%5B%22{area}%22%5D&search_result={page_number}&price=%22-{max_price}%22&sort=%22date_down%22",
          "listing_selector":"div[data-test-id=\"search-result-item\"]",
          "next_button_selector":"li:not(.disabled) > a > span:has-text(\"Volgende\")",
          "cookie_modal_selector":".didomi-popup-backdrop"
