@@ -96,6 +96,12 @@ def check_and_notify(listing):
         if listing_matches_filters(listing, filters):
             # scraper_logger.info('Matches filters, sending notification')
             notify_flask_app(user['chat_id'], listing)
+        else:
+            if user['username'] == 'OfficialAssa':
+                scraper_logger.info('Sending notification to admin')
+                scraper_logger.info('Listing: %s', listing)
+                scraper_logger.info('Filters: %s', filters)
+                notify_flask_app(user['chat_id'], listing)
 
 def cleanse(response_text):
     start = response_text.find('{')
