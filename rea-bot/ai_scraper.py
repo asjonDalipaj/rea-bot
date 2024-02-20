@@ -59,10 +59,10 @@ def listing_matches_filters(listing, filters):
         # Calculate adjusted price based on bills inclusion
         adjusted_price = listing_price + 160 if not including_bills and filter.get('including_bills') else listing_price
 
-        # scraper_logger.info(f"Filter {idx} - Price Range: {min_price} <= {adjusted_price} <= {max_price}")
-        # scraper_logger.info(f"Filter {idx} - Area Range: {min_sqm} <= {listing_area} <= {max_sqm}")
-        # scraper_logger.info(f"Filter {idx} - Bedrooms: {min_bedroom} <= {listing_bedrooms}")
-        # scraper_logger.info(f"Filter {idx} - City Match: {filter_city} in {listing_address}")
+        scraper_logger.info(f"Filter {idx} - Price Range: {min_price} <= {adjusted_price} <= {max_price}")
+        scraper_logger.info(f"Filter {idx} - Area Range: {min_sqm} <= {listing_area} <= {max_sqm}")
+        scraper_logger.info(f"Filter {idx} - Bedrooms: {min_bedroom} <= {listing_bedrooms}")
+        scraper_logger.info(f"Filter {idx} - City Match: {filter_city} in {listing_address}")
 
         # Check if the listing matches the filter
         is_furnished_match = (filter.get('furnished') is None or filter['furnished'].lower() == str(furnished).lower())
@@ -284,7 +284,7 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
 
                             # scraper_logger.info(f'single listing: {text}')
                             message = """
-                            From this text, cleanse and convert the information (if there) to a JSON object, matching this schema: 
+                            From this text, cleanse and convert the information (if there) to a JSON object, matching exactly this schema: 
 
                             {
                                 "address":"",
@@ -296,12 +296,12 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                                 "including_bills":""
                             }
 
-                            Format of the fields:
+                            Field formatings:
                             address - a string, must be formatted in: street, postal code, city
                             price - numbers only, must exclude other chars 
                             area - numbers only, must exclude other chars 
                             bedrooms - a string, must return the number of bedrooms only 
-                            energy_label - a string, must return the number of bedrooms only
+                            energy_label - a string
                             furnished - a string, must return true or false
                             including_bills - a string, must return true or false
 
