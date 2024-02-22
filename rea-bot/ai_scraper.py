@@ -216,8 +216,7 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
             
             # Wait for the selector instead if no ad is found
             if not listings:
-                scraper_logger.info(f'wait_for_selector({ad_selector})')
-                await page.wait_for_selector(ad_selector, timeout=10000)
+                await page.wait_for_selector(ad_selector, timeout=8000)
                 listings = await page.query_selector_all(ad_selector)
 
             # if broker['name'] == 'Pararius':
