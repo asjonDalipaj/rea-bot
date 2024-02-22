@@ -217,7 +217,7 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
             # Wait for the selector instead if no ad is found
             if not listings:
                 scraper_logger.info(f'wait_for_selector({ad_selector})')
-                await page.wait_for_selector(ad_selector)
+                await page.wait_for_selector(ad_selector, timeout=10000)
                 listings = await page.query_selector_all(ad_selector)
 
             # if broker['name'] == 'Pararius':
@@ -284,7 +284,7 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
 
                             # scraper_logger.info(f'single listing: {text}')
                             message = """
-                            From this text, cleanse and convert the information (if there) to a JSON object, matching exactly this schema: 
+                            From this text, only return a JSON object, matching exactly this schema: 
 
                             {
                                 "address":"",
@@ -297,15 +297,15 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                             }
 
                             Field formatings:
-                            address - a string, must be formatted in: street, postal code, city
+                            address - a string, title case, must be formatted in: street, postal code, city
                             price - numbers only, must exclude other chars 
                             area - numbers only, must exclude other chars 
-                            bedrooms - a string, must return the number of bedrooms only 
+                            bedrooms - a string, 1 as default, must return the number of bedrooms only 
                             energy_label - a string
                             furnished - a string, must return true or false
                             including_bills - a string, must return true or false
 
-                            Important! Limit responses to a valid JSON, no explanatory text. Never truncate the JSON with an ellipsis. Always srurround the values with double quotes and escape quotes with \\. Always omit trailing commas. 
+                            Important! If data is not there always return an empty string. Never truncate the JSON with an ellipsis. Always srurround the values with double quotes and escape quotes with \\. Always omit trailing commas. 
 
                             Text:
                             """
