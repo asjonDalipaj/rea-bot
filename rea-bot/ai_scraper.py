@@ -140,29 +140,38 @@ def save_data(data):
 
 async def send_message_with_retry(message, max_retries=3):
     attempt = 0
-    try:
-        scraper_logger.info('Running query...')
-        response = None
-        for chunk in perplexity.search(message):
-            response = chunk  # Assuming the last chunk contains the answer
-        
-        # After iterating over the generator, check if the response contains 'answer'
-        if response and 'answer' in response:
-            scraper_logger.info(response['answer'])
-            return response['answer']
-
-    except e:
-        if 'already running' in str(e):
-            attempt += 1
-            scraper_logger.info(f"Server Error encountered. Retry attempt {attempt}/{max_retries}.")
-            # Since this is an async function, we still need to wait asynchronously.
-            await asyncio.sleep(60)
-        else:
-            scraper_logger.info(f"An unexpected error occurred: {e}")
+    while attempt < max_retries:
+        try:
+            scraper_logger.info('Running query...')
+            response = perplexity.search_sync(message)
+            if response and 'text' in response:
+                # Concatenate the response text chunks into a single string
+                response_text = ''.join(response['text'])
+                # Parse the concatenated string into a JSON object
+                response_json = json.loads(response_text)
+                # Extract the 'answer' value from the JSON object
+                answer = response_json.get('answer')  # Use .get() to avoid KeyError if 'answer' does not exist
+                if answer:
+                    # Log the 'answer' value
+                    # scraper_logger.info('Answer: %s', answer)
+                    # Return the 'answer' value
+                    return answer
+                else:
+                    scraper_logger.error("'answer' not found in response JSON")
+            else:
+                scraper_logger.error("'text' not found in response")
+        except json.JSONDecodeError as e:
+            scraper_logger.error(f"JSON decode error: {e}")
+        except Exception as e:
+            scraper_logger.error(f"An unexpected error occurred: {e}")
             scraper_logger.error(traceback.format_exc())
-            await sys.exit(1)
+        attempt += 1
+        if attempt < max_retries:
+            scraper_logger.info(f"Retrying... Attempt {attempt + 1}")
+        else:
+            scraper_logger.error(f"Failed to send message after {max_retries} retries. Skipping message.")
 
-        scraper_logger.info(f"Failed to send message after {max_retries} retries. Skipping message.")
+    return None
 
 async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_selector, page_number=1):
     async with async_playwright() as p:
@@ -312,7 +321,7 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                             # scraper_logger.info(f'message: {message}')
                             # response_text = await send_message_with_retry(client, bot, message, 270446664) # chinchilla
                             response_text = await send_message_with_retry(message) # Perplexity
-
+                            # scraper_logger.info(f'Response text: {response_text}')
                             # response_text = """
                             # {
                             #     "address":"Schonberglaan 189, 3454HS, Utrecht",

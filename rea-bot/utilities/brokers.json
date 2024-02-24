@@ -1,6 +1,14 @@
 {
    "brokers":[
       {
+         "name":"Domvast",
+         "domain":"https://domvast.nl/",
+         "url":"https://domvast.nl/woningen/huur/",
+         "listing_selector":"article.woning",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
          "name":"Van Rossum Makelaars",
          "domain":"https://www.vanrossummakelaars.nl",
          "url":"https://www.vanrossummakelaars.nl/aanbod/bedrijfsaanbod/{area}/-{max_price}/huur/",
@@ -61,14 +69,6 @@
          "domain":"https://www.dakwoningbeleggingen.nl/",
          "url":"https://www.dakwoningbeleggingen.nl/aanbod/woningaanbod/{area}/-{max_price}/huur/provincie-{area}/",
          "listing_selector":"li.al4woning",
-         "next_button_selector":"",
-         "cookie_modal_selector":""
-      },
-      {
-         "name":"Domvast",
-         "domain":"https://domvast.nl/",
-         "url":"https://domvast.nl/woningen/huur/",
-         "listing_selector":"article.woning",
          "next_button_selector":"",
          "cookie_modal_selector":""
       },
