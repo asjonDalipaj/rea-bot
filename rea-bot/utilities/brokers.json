@@ -1,6 +1,14 @@
 {
    "brokers":[
       {
+         "name": "roxxle",
+         "domain": "https://roxxle.nl",
+         "url": "https://roxxle.nl/aanbod/huurwoningen?zoekopdracht={area}&prijs_max={max_price}&order=datum&direction=desc",
+         "listing_selector":"div.object_wrapper:has(span.label-nieuw)",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
          "name":"Domvast",
          "domain":"https://domvast.nl/",
          "url":"https://domvast.nl/woningen/huur/",
@@ -28,7 +36,7 @@
          "name":"Molenbeek",
          "domain":"https://molenbeek.nl/",
          "url":"https://molenbeek.nl/wonen/aanbod?buy_rent=rent&rent_price=-{max_price}&distance=5&search={area}&order_by=created_at-desc&page=1",
-         "listing_selector":"div.card--object",
+         "listing_selector":"div.index__grid > div.card--object",
          "next_button_selector":"",
          "cookie_modal_selector":""
       },
@@ -197,14 +205,6 @@
          "domain": "https://housinganywhere.com",
          "url": "https://housinganywhere.com/s/{area}--Netherlands?priceMax={max_price}00&bills=included&sorting=mostRecent",
          "listing_selector":"div[class='MuiGrid-root MuiGrid-item MuiGrid-grid-xs-12 MuiGrid-grid-sm-12 MuiGrid-grid-md-4 css-kiyygt']",
-         "next_button_selector":"",
-         "cookie_modal_selector":""
-      },
-      {
-         "name": "roxxle",
-         "domain": "https://roxxle.nl",
-         "url": "https://roxxle.nl/aanbod/huurwoningen?zoekopdracht={area}&prijs_max={max_price}&order=datum&direction=desc",
-         "listing_selector":"div[class*='object_wrapper']:has(span.label-nieuw)",
          "next_button_selector":"",
          "cookie_modal_selector":""
       },

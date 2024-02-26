@@ -94,7 +94,7 @@ def check_and_notify(listing):
         filters = get_filters_for_user(user['id'])
         # scraper_logger.info('Filters: %s', filters)
         if listing_matches_filters(listing, filters):
-            # scraper_logger.info('Matches filters, sending notification')
+            scraper_logger.info('Matches filters, sending notification')
             notify_flask_app(user['chat_id'], listing)
         # else:
         #     if user['username'] == 'OfficialAssa':
