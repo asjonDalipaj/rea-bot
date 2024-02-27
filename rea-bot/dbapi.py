@@ -48,8 +48,10 @@ class Filter(Base):
     __tablename__ = 'filter'
     id = Column(Integer, primary_key=True)
     userid = Column(Integer, ForeignKey('user.id'), nullable=False)
+    # Todo - make these two nullable
     furnished = Column(String, nullable=False)
     including_bills = Column(String, nullable=False)
+    #
     min_price = Column(String, nullable=True)
     max_price = Column(String, nullable=True)
     min_sqm = Column(String, nullable=True)
@@ -161,7 +163,7 @@ async def notify():
     # Send a message asynchronously
     await send_telegram_message(chat_id, listing_msg, applying_msg)
     
-    return jsonify({"status": "success", "message": "Notification sent"}), 200
+    return jsonify({"message": "Notification sent"}), 200
 
 @app.route('/users', methods=['GET'])
 async def get_users():
@@ -173,6 +175,23 @@ async def get_users():
             for user in users
         ]
         return jsonify(users_data), 200
+    
+@app.route('/users/<int:chat_id>', methods=['GET'])
+async def get_user_by_chat_id(chat_id):
+    async with async_session() as session:
+        # Assuming User is your SQLAlchemy model and async_session is set up for async ORM operations
+        result = await session.execute(select(User).where(User.chat_id == chat_id))
+        user = result.scalars().first()
+
+        if user:
+            user_data = {
+                'id': user.id,
+                'username': user.username,
+                'chat_id': user.chat_id
+            }
+            return jsonify(user_data), 200
+        else:
+            return jsonify({'message': 'User not found'}), 404
 
 @app.route('/users', methods=['POST'])
 async def add_user():
@@ -215,6 +234,25 @@ async def get_user_filters(userid):
     } for filter_ in user_filters]  # Renamed to filter_ to avoid name clash with the built-in filter function
 
     return jsonify(filters_data), 200
+
+@app.route('/filters', methods=['POST'])
+async def create_filters():
+    try:
+        data = await request.get_json()
+        new_filter = Filter(**data)
+
+        async with async_session() as session:
+            async with session.begin():
+                session.add(new_filter)
+            await session.commit()
+
+        return jsonify(new_filter.to_dict()), 201
+    except Exception as e:
+        await session.rollback()
+        # Assuming you have set up logging as in Flask
+        # Replace `db_api_logger.error` with your logger's name
+        db_api_logger.error(f"Error creating the filter: {e}")
+        return jsonify({"message": "Failed to create listing", "error": str(e)}), 500
 
 # Function utilities
 def create_notification_message(listing_data):

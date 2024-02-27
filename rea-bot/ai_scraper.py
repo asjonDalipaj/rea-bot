@@ -65,8 +65,8 @@ def listing_matches_filters(listing, filters):
         scraper_logger.info(f"Filter {idx} - City Match: {filter_city} in {listing_address}")
 
         # Check if the listing matches the filter
-        is_furnished_match = (filter.get('furnished') is None or filter['furnished'].lower() == str(furnished).lower())
-        is_bills_included_match = (filter.get('including_bills') is None or filter['including_bills'].lower() == str(including_bills).lower())
+        is_furnished_match = (filter.get('furnished') == 'false' or filter['furnished'].lower() == str(furnished).lower())
+        is_bills_included_match = (filter.get('including_bills') == 'false' or filter['including_bills'].lower() == str(including_bills).lower())
         is_price_match = min_price <= adjusted_price <= max_price
         is_area_match = min_sqm <= listing_area <= max_sqm
         is_bedroom_match = min_bedroom <= listing_bedrooms
@@ -84,6 +84,9 @@ def notify_flask_app(chat_id, listing):
     notification_data = {'chat_id': chat_id, 'listing': listing}
     response = requests.post(f'{DB_API_BASE_URL}/notify', json=notification_data)
     return response.status_code
+
+
+# Todo manage logging and exception handling for listings. Notify to admin
 
 def check_and_notify(listing):
     # Todo manage if api is down
@@ -256,7 +259,6 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                             href = domain + href
                         scraper_logger.info(f'Processing listing - {href}')
 
-                        # Todo last - to improve through all sites?
                         # Define any query parameters you want to send
                         params = {
                             'listing_link': href
@@ -353,13 +355,7 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                             await listing_context.close()
                     else:
                         scraper_logger.info("No URL found in the HTML of this listing.")
-                    
-                    # TODO 2 - Handle pagination if required
-                    # next_button = await page.query_selector(next_button_selector)
-                    # scraper_logger.info("Next Page btn:", next_button)
-                    # if next_button:
-                    #     scraper_logger.info(f"Another page for {area}")     
-                    #     await scrape(area, url, listing_selector, next_button_selector, page_number + 1)
+
         except PlaywrightTimeoutError as e:
             scraper_logger.info(f"Timeout reaching {broker['name']}, or simply, no listings to scrape - skipping!")
             scraper_logger.info(f"-- End {broker['name']} --")
@@ -399,7 +395,7 @@ if __name__ == "__main__":
     
     config = load_config('./utilities/brokers.json')
     # Define the API endpoint
-    DB_API_BASE_URL = 'http://localhost:5000'
+    DB_API_BASE_URL = os.getenv('API_BASE_URL')
 
     scraper_logger.info('### Scraper started ###')
 
