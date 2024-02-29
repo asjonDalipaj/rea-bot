@@ -57,8 +57,12 @@ def listing_matches_filters(listing, filters):
         filter_city = normalize_string(filter['city']) if filter['city'] else listing_address
         
         # Calculate adjusted price based on bills inclusion
-        adjusted_price = listing_price + 160 if not including_bills and filter.get('including_bills') else listing_price
-
+        adjusted_price = listing_price + 160 if not including_bills and filter.get('including_bills', '').lower() == 'true' else listing_price
+        
+        scraper_logger.info(f"Filter {idx} - Listing is including bills? {including_bills}")
+        scraper_logger.info(f"Filter {idx} - Listing is furnished? {furnished}")
+        scraper_logger.info(f"Filter {idx} - Including bills check: Listing: {including_bills} - Filter: {filter.get('including_bills', '').lower() == 'true'}")
+        scraper_logger.info(f"Filter {idx} - Furnished bills check: Listing: {furnished} - Filter: {filter.get('furnished', '').lower() == 'true'}")
         scraper_logger.info(f"Filter {idx} - Price Range: {min_price} <= {adjusted_price} <= {max_price}")
         scraper_logger.info(f"Filter {idx} - Area Range: {min_sqm} <= {listing_area} <= {max_sqm}")
         scraper_logger.info(f"Filter {idx} - Bedrooms: {min_bedroom} <= {listing_bedrooms}")
@@ -72,6 +76,9 @@ def listing_matches_filters(listing, filters):
         is_bedroom_match = min_bedroom <= listing_bedrooms
         is_city_match = filter_city in listing_address
 
+        scraper_logger.info(f"Filter {idx} - Furnished requested: {filter.get('furnished')}, Listing furnished: {furnished}, Match: {is_furnished_match}")
+        scraper_logger.info(f"Filter {idx} - Including bills requested: {filter.get('including_bills')}, Listing including bills: {including_bills}, Match: {is_bills_included_match}")
+
         if all([is_furnished_match, is_bills_included_match, is_price_match, is_area_match, is_bedroom_match, is_city_match]):
             return True
         else:
@@ -80,8 +87,8 @@ def listing_matches_filters(listing, filters):
     scraper_logger.info("No filters matched the listing.")
     return False
 
-def notify_flask_app(chat_id, listing):
-    notification_data = {'chat_id': chat_id, 'listing': listing}
+def notify_flask_app(user, listing):
+    notification_data = {'user': user, 'listing': listing}
     response = requests.post(f'{DB_API_BASE_URL}/notify', json=notification_data)
     return response.status_code
 
@@ -98,7 +105,7 @@ def check_and_notify(listing):
         # scraper_logger.info('Filters: %s', filters)
         if listing_matches_filters(listing, filters):
             scraper_logger.info('Matches filters, sending notification')
-            notify_flask_app(user['chat_id'], listing)
+            notify_flask_app(user, listing)
         # else:
         #     if user['username'] == 'OfficialAssa':
         #         scraper_logger.info('Sending notification to admin')
@@ -108,17 +115,26 @@ def check_and_notify(listing):
 
 def cleanse(response_text):
     start = response_text.find('{')
-    
-    # We add 1 to include the closing brace itself in the slice
     end = response_text.rfind('}') + 1
 
-    # If both braces are found, slice the string
     if start != -1 and end != -1:
         cleaned_text = response_text[start:end]
     else:
-        # If the braces are not found, return the original text
         cleaned_text = response_text
 
+    try:
+        data = json.loads(cleaned_text)
+        for key, value in data.items():
+            if key in ['price', 'area']:
+                # Keep only digits in price and area fields
+                value = re.sub(r'[^\d]', '', str(value))
+            data[key] = str(value)  # Ensure all values are strings
+        
+        cleaned_text = json.dumps(data, ensure_ascii=False)
+    except json.JSONDecodeError:
+        # Handle the error or leave as is if it's expected to sometimes not be JSON
+        scraper_logger.error('Error decoding JSON data: %s' %data)
+        scraper_logger.error('Skipping it for the moment')
     return cleaned_text
 
 # Cleanse to DB
@@ -215,9 +231,7 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
             scraper_logger.info("No cookie modal defined in config, continuing")
 
         try:
-            scraper_logger.info(f"-- Scraping page {page_number}--")
             # Wait for the page to load fully
-
             await page.wait_for_load_state()
 
             # Extract data from the page

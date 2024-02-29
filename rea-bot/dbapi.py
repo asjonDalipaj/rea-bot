@@ -83,8 +83,8 @@ class Listing(Base):
     bedrooms = Column(String, nullable=False)
     energy_label = Column(String, nullable=False)
     listing_link = Column(String, nullable=False)
-    furnished = Column(String, nullable=False)
-    including_bills = Column(String, nullable=False, server_default='false')
+    furnished = Column(String, nullable=False, server_default='no')
+    including_bills = Column(String, nullable=False, server_default='no')
 
     def to_dict(self):
         return {
@@ -98,7 +98,22 @@ class Listing(Base):
             'including_bills': self.including_bills
         }
 
-# Function to create tables asynchronously
+class Message(Base):
+    __tablename__ = 'message'  # Correct table name for messages
+    id = Column(Integer, primary_key=True)
+    userid = Column(Integer, ForeignKey('user.id'), nullable=False, unique=True)  # Enforce unique messages per user
+    message = Column(String, nullable=True)
+    
+    # Correct the back reference to reflect the relationship
+    # If you want the relationship to represent "one-to-one", use uselist=False
+    user = relationship('User', backref='message', uselist=False)
+
+    def to_dict(self):
+        return {
+            'userid': self.userid,
+            'message': self.message
+        }
+
 async def create_tables():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -150,18 +165,13 @@ async def create_listing():
 @app.route('/notify', methods=['POST'])
 async def notify():
     data = await request.get_json()
-    chat_id = data['chat_id']
+    user = data['user']
     listing_data = data['listing']
     
-    listing_msg, applying_msg = create_notification_message(listing_data)
-    
-    # Send the message using Telegram's async API
-    async with async_session() as session:
-        # Perform database operations with async session if needed
-        pass
+    listing_msg, applying_msg = await create_notification_message(user['id'], listing_data)
     
     # Send a message asynchronously
-    await send_telegram_message(chat_id, listing_msg, applying_msg)
+    await send_telegram_message(user['chat_id'], listing_msg, applying_msg)
     
     return jsonify({"message": "Notification sent"}), 200
 
@@ -176,7 +186,7 @@ async def get_users():
         ]
         return jsonify(users_data), 200
     
-@app.route('/users/<int:chat_id>', methods=['GET'])
+@app.route('/users/<string:chat_id>', methods=['GET'])
 async def get_user_by_chat_id(chat_id):
     async with async_session() as session:
         # Assuming User is your SQLAlchemy model and async_session is set up for async ORM operations
@@ -249,13 +259,50 @@ async def create_filters():
         return jsonify(new_filter.to_dict()), 201
     except Exception as e:
         await session.rollback()
-        # Assuming you have set up logging as in Flask
-        # Replace `db_api_logger.error` with your logger's name
         db_api_logger.error(f"Error creating the filter: {e}")
         return jsonify({"message": "Failed to create listing", "error": str(e)}), 500
 
+@app.route('/message', methods=['POST'])
+async def create_message():
+    try:
+        data = await request.get_json()
+        new_message = Message(**data)
+
+        async with async_session() as session:
+            async with session.begin():
+                session.add(new_message)
+            await session.commit()
+
+        return jsonify(new_message.to_dict()), 201
+    except Exception as e:
+        await session.rollback()
+        db_api_logger.error(f"Error creating the filter: {e}")
+        return jsonify({"message": "Failed to create listing", "error": str(e)}), 500
+
+async def get_applying_message_by_userid(userid):
+    # Query the Message table for the applying message for the specified user
+    async with async_session() as session:
+        # Assuming Filter is your SQLAlchemy model and async_session is set up for async ORM operations
+        result = await session.execute(select(Message).where(Message.userid == userid))
+        applying_message = result.scalars().first()
+
+    # If an applying message exists, return its content
+    if applying_message:
+        return applying_message.message
+    else:
+        applying_message = """
+        "NOTE! This is a default message, change it to your needs - [ADDRESS] will be replaced with the address of the listing is being found.\n\n"
+        "I'm looking for an apartment in Utrecht and I've found your listing at [ADDRESS].\n"
+        "I would love to view this apartment!\n"
+        f"My name is [YOUR NAME] and I am a [your profession]. My bruto income is €[your bruto] per month. I'm moving in by myself/with my partner.\n\n"
+        "I'm available for a viewing as soon as it's possible. Could I come by for a viewing?\n\n"
+        "You can reach me at +XX XXXXXXX or your.mail@gmail.com.\n\n"
+        "Hope to hear from you!\n"
+        "Kind regards,\n"""
+        return None
+
 # Function utilities
-def create_notification_message(listing_data):
+async def create_notification_message(userid, listing_data):
    # Send notification
     listing_msg = (
         f"🏄 Found new listing!\n"
@@ -266,16 +313,8 @@ def create_notification_message(listing_data):
     # Ensure each line is stripped of leading/trailing whitespace
     listing_msg = "\n".join(line.strip() for line in listing_msg.splitlines())
 
-    applying_msg = (
-        f"I'm looking for an apartment in Utrecht and I've found your listing at {listing_data['address']}.\n"
-        "I would love to view this apartment!\n"
-        "My name is Asjon and I am a Software Engineer. My bruto income is €5800 per month. I'm moving in by myself.\n\n"
-        "I'm available for a viewing as soon as it's possible. Could I come by for a viewing?\n\n"
-        "You can reach me at +31 683715213 or asjon.dalipaj@gmail.com.\n\n"
-        "Hope to hear from you!\n"
-        "Kind regards,\n"
-        "Asjon"
-    )
+    applying_msg = await get_applying_message_by_userid(userid)
+    applying_msg = applying_msg.replace('[ADDRESS]', listing_data['address'])
 
     # Ensure each line is stripped of leading/trailing whitespace
     applying_msg = "\n".join(line.strip() for line in applying_msg.splitlines())
