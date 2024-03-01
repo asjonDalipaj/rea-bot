@@ -245,6 +245,21 @@ async def get_user_filters(userid):
 
     return jsonify(filters_data), 200
 
+@app.route('/users/<string:userid>/message', methods=['GET'])
+async def get_user_message(userid):
+    async with async_session() as session:
+        # Assuming Filter is your SQLAlchemy model and async_session is set up for async ORM operations
+        result = await session.execute(select(Message).filter_by(userid=userid))
+        user_message = result.scalars().all()
+
+    message_data = [{
+        'id': message_.id,
+        'userid': message_.userid,
+        'message': message_.message
+    } for message_ in user_message]
+
+    return jsonify(message_data), 200
+
 @app.route('/filters', methods=['POST'])
 async def create_filters():
     try:

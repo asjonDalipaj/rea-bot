@@ -16,7 +16,7 @@ load_dotenv()
 
 DB_API_BASE_URL = os.getenv('API_BASE_URL')
 
-FURNISHED, INCLUDING_BILLS, MIN_PRICE, MAX_PRICE, MIN_SQM, MAX_SQM, MIN_BEDROOM, CITY, MESSAGE = range(9)
+FURNISHED, INCLUDING_BILLS, MIN_PRICE, MAX_PRICE, MIN_SQM, MAX_SQM, MIN_BEDROOM, CITY, MESSAGE, ADD_OR_CHANGE = range(10)
 
 # Utilities
 
@@ -27,11 +27,26 @@ def get_user_by_chat_id(chat_id):
     else:
         return []
 
+def get_filters_by_user_id(user_id):
+    response = requests.get(f'{DB_API_BASE_URL}/users/{user_id}/filters')
+    if response.status_code == 200:
+        return response.json()
+    else:
+        return []
+
+def get_message_by_user_id(user_id):
+    response = requests.get(f'{DB_API_BASE_URL}/users/{user_id}/message')
+    if response.status_code == 200:
+        return response.json()
+    else:
+        return []
+
 # Start conversation and handle /start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     chat_id = update.effective_chat.id
     username = update.effective_user.username
     reply_keyboard = [['Yes', 'No']]
+    reply_keyboard_add_change = [['Add', 'Change', 'Cancel']]
 
     user_info = {
         'chat_id': str(chat_id),
@@ -48,11 +63,90 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
                 parse_mode=ParseMode.MARKDOWN
             )
         elif response.status_code == 200:
-            await update.message.reply_text("Hello, welcome back to Hopper, you're already registered - there is no need to register again!")
-            return ConversationHandler.END
+            user = get_user_by_chat_id(chat_id)
+            filters = get_filters_by_user_id(user['id'])
+            message = get_message_by_user_id(user['id'])
+
+            # Prepare text for each filter in the list
+            filters_text_list = []
+            for filter_ in filters:
+                human_readable_filter = {
+                    'Furnished': 'Yes' if filter_['furnished'] else 'No',
+                    'Including bills': 'Yes' if filter_['including_bills'] else 'No',
+                    'Min price': filter_['min_price'],
+                    'Max price': filter_['max_price'],
+                    'Min sqm': filter_['min_sqm'],
+                    'Max sqm': filter_['max_sqm'],
+                    'Min bedroom': filter_['min_bedroom'],
+                    'City': filter_['city']
+                }
+                filter_text = "\n".join([f"{key}: {value}" for key, value in human_readable_filter.items()])
+                filters_text_list.append(filter_text)
+
+            # Combine all filter texts into one string
+            filters_text = "\n\n".join(filters_text_list)
+
+            # Prepare text for user message
+            message_text = "\n".join([msg['message'] for msg in message])  # Assuming message is a list of messages
+
+            # Prepare the keyboard markup
+            markup = ReplyKeyboardMarkup(reply_keyboard_add_change, one_time_keyboard=True, resize_keyboard=True)
+
+            # Prepare the full text including the filters and message
+            full_text = (
+                "Hello, welcome back to Hopper, you're already registered.\n\n"
+                "*Current Filters:*\n"
+                f"{filters_text}\n\n"
+                "*Your Message:*\n"
+                f"{message_text}\n\n"
+                "Would you like to *add or change anything?*"
+            )
+
+            # Send the message to the user
+            await update.message.reply_text(
+                full_text,
+                reply_markup=markup,
+                parse_mode=ParseMode.MARKDOWN
+            )
+            
+            return ADD_OR_CHANGE
+
     except requests.exceptions.RequestException as e:
         print(f"Error: {e}")
     return FURNISHED
+
+async def add_or_change_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
+    text = update.message.text.lower()
+    reply_keyboard = [['Yes', 'No']]
+    
+    # Add new filters
+    if text == 'add':
+        # Add handler logic here
+        markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True, resize_keyboard=True)
+        await update.message.reply_text(
+            "Great! Let's setup some more  filters for your future rental: Would you want the property to be *furnished?*",
+            reply_markup=markup,
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return FURNISHED
+    elif text == 'change':
+        # Change handler logic here
+        await update.message.reply_text(
+            "Let's change your filters...",
+            parse_mode=ParseMode.MARKDOWN)
+        return FURNISHED
+    elif text == 'cancel':
+        # Cancel handler logic here
+        await update.message.reply_text(
+            "You cancelled, see you next time!",
+            parse_mode=ParseMode.MARKDOWN)
+        return ConversationHandler.END
+    else:
+        # Handle invalid input
+        await update.message.reply_text(
+            "Please choose 'Add', 'Change', or 'Cancel'.",
+            parse_mode=ParseMode.MARKDOWN)
+        return ADD_OR_CHANGE
 
 # Handlers for each state in the conversation
 async def furnished_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
@@ -226,6 +320,7 @@ def main():
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
         states={
+            ADD_OR_CHANGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_or_change_handler)],
             FURNISHED: [MessageHandler(filters.TEXT & ~filters.COMMAND, furnished_handler)],
             INCLUDING_BILLS: [MessageHandler(filters.TEXT & ~filters.COMMAND, including_bills_handler)],
             MIN_PRICE: [MessageHandler(filters.TEXT & ~filters.COMMAND, min_price_handler)],
@@ -234,7 +329,7 @@ def main():
             MAX_SQM: [MessageHandler(filters.TEXT & ~filters.COMMAND, max_sqm_handler)],
             MIN_BEDROOM: [MessageHandler(filters.TEXT & ~filters.COMMAND, min_bedroom_handler)],
             CITY: [MessageHandler(filters.TEXT & ~filters.COMMAND, city_handler)],
-            MESSAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler)],
+            MESSAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler)]
         },
         fallbacks=[CommandHandler('cancel', cancel)],
     )
