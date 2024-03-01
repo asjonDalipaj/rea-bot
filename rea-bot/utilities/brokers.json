@@ -1,6 +1,14 @@
 {
    "brokers":[
       {
+         "name": "Ma Residences",
+         "domain": "https://www.maresidences.nl/",
+         "url": "https://www.maresidences.nl/woningaanbod",
+         "listing_selector":"div.object:has(span.new_forrent)",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
          "name": "Mozaiek Makelaardij",
          "domain": "https://www.mozaiekmakelaardij.nl/",
          "url": "https://www.mozaiekmakelaardij.nl/woningaanbod/huur?availability=1&moveunavailablelistingstothebottom=true&orderby=10&orderdescending=true&pricerange.maxprice={max_price}",
