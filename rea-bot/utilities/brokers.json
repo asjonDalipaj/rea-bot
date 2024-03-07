@@ -1,6 +1,14 @@
 {
    "brokers":[
       {
+         "name": "Livresidential",
+         "domain": "https://livresidential.nl",
+         "url": "https://livresidential.nl/huurwoningen?range%5Bprice%5D=500%3A{max_price}&refinementList%5Bcity%5D%5B0%5D={area}",
+         "listing_selector":"a.flex.flex-col",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
          "name": "Ma Residences",
          "domain": "https://www.maresidences.nl/",
          "url": "https://www.maresidences.nl/woningaanbod",
