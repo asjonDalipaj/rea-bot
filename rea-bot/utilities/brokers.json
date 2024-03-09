@@ -1,6 +1,14 @@
 {
    "brokers":[
       {
+         "name": "Stadhouder Makelaardij",
+         "domain": "https://www.stadhoudermakelaardij.nl",
+         "url": "https://www.stadhoudermakelaardij.nl/aanbod/woningaanbod/-{max_price}/huur/",
+         "listing_selector":"a.aanbodEntryLink",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
          "name": "Livresidential",
          "domain": "https://livresidential.nl",
          "url": "https://livresidential.nl/huurwoningen?range%5Bprice%5D=500%3A{max_price}&refinementList%5Bcity%5D%5B0%5D={area}",
