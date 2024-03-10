@@ -11,6 +11,7 @@ import requests
 import argparse
 from perplexity import Perplexity
 from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError
+import concurrent.futures
 
 scraper_logger = setup_logger('scraper_logger', './logs/scraper_logfile.log')
 
@@ -192,7 +193,13 @@ async def send_message_with_retry(message, max_retries=3):
 
     return None
 
-async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_selector, page_number=1):
+async def scrape(broker):
+    domain = broker['domain']
+    url = broker['url']
+    listing_selector = broker['listing_selector']
+    next_button_selector = broker['next_button_selector']
+    cookie_modal_selector = broker['cookie_modal_selector']
+    
     async with async_playwright() as p:
 
         browser = await p.chromium.launch(headless=True) 
@@ -211,7 +218,7 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
         
         page = await context.new_page()
 
-        url = url.format(area=area, max_price=max_price, page_number=page_number)
+        url = url.format(area=area, max_price=max_price, page_number=1)
         scraper_logger.info(f"Scraping {broker['name']} - {url}")
         
         await page.goto(url)
@@ -236,14 +243,14 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
 
             # Extract data from the page
             # html_broker = await page.inner_html('body')
-            listings = await page.query_selector_all(ad_selector)
+            listings = await page.query_selector_all(listing_selector)
             
             href = None
             
             # Wait for the selector instead if no ad is found
             if not listings:
-                await page.wait_for_selector(ad_selector, timeout=8000)
-                listings = await page.query_selector_all(ad_selector)
+                await page.wait_for_selector(listing_selector, timeout=8000)
+                listings = await page.query_selector_all(listing_selector)
 
             # if broker['name'] == 'Pararius':
             #     html_broker = await page.inner_html('body')
@@ -382,6 +389,19 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
 
     scraper_logger.info(f"-- End {broker['name']} --")
 
+def scrape_broker(broker):
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    
+    coroutine = scrape(broker)
+    try:
+        loop.run_until_complete(coroutine)
+    except Exception as e:
+        scraper_logger.info(f"An error occurred while scraping {broker['name']} in {area}: {e}")
+        scraper_logger.error(traceback.format_exc())
+    finally:
+        loop.close()
+
 if __name__ == "__main__":
     # Parse arguments
     parser = argparse.ArgumentParser(description='Process some integers.')
@@ -414,27 +434,13 @@ if __name__ == "__main__":
     scraper_logger.info('### Scraper started ###')
 
     # Setup your asyncio event loop before the loop
-    loop = asyncio.get_event_loop()
-
-    # Loop through all the brokers in the config
-    for broker in config['brokers']:
-        domain = broker['domain']
-        url = broker['url']
-        listing_selector = broker['listing_selector']
-        next_button_selector = broker['next_button_selector']
-        cookie_modal_selector = broker['cookie_modal_selector']
-
-        # Call scrape function for the current broker
-        # Use the event loop you set up earlier
-        coroutine = scrape(url, domain, listing_selector, next_button_selector, cookie_modal_selector)
-        try:
-            loop.run_until_complete(coroutine)
-        except Exception as e:
-            scraper_logger.info(f"An error occurred while scraping {broker['name']} in {area}: {e}")
-            scraper_logger.error(traceback.format_exc())
-
-    # Close the event loop after all tasks are done
-    loop.close()
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = []
+        for broker in config['brokers']:
+            future = executor.submit(scrape_broker, broker)
+            futures.append(future)
+        
+        concurrent.futures.wait(futures)
 
     # Close perplexity connection
     perplexity.close()
