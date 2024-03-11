@@ -431,7 +431,7 @@ if __name__ == "__main__":
 
     scraper_logger.info('### Scraper started ###')
 
-    max_workers = 10  # Adjust this value based on your requirements and system resources
+    max_workers = 3  # Adjust this value based on your requirements and system resources
     # Concurrent execution
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = []
