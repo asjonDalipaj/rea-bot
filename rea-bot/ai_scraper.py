@@ -158,7 +158,7 @@ def save_data(data):
     else:
         scraper_logger.error("Failed to add listing", response.json())
 
-async def send_message_with_retry(message, max_retries=3):
+async def send_message_with_retry(message, perplexity, max_retries=3):
     attempt = 0
     while attempt < max_retries:
         try:
@@ -187,6 +187,7 @@ async def send_message_with_retry(message, max_retries=3):
             scraper_logger.error(traceback.format_exc())
         attempt += 1
         if attempt < max_retries:
+            await asyncio.sleep(10)
             scraper_logger.info(f"Retrying... Attempt {attempt + 1}")
         else:
             scraper_logger.error(f"Failed to send message after {max_retries} retries. Skipping message.")
@@ -199,6 +200,8 @@ async def scrape(broker):
     listing_selector = broker['listing_selector']
     next_button_selector = broker['next_button_selector']
     cookie_modal_selector = broker['cookie_modal_selector']
+
+    perplexity = Perplexity()
     
     async with async_playwright() as p:
 
@@ -343,8 +346,8 @@ async def scrape(broker):
                             message += text + "\n" + page_text
                             # scraper_logger.info(f'message: {message}')
                             # response_text = await send_message_with_retry(client, bot, message, 270446664) # chinchilla
-                            response_text = await send_message_with_retry(message) # Perplexity
-                            # scraper_logger.info(f'Response text: {response_text}')
+                            response_text = await send_message_with_retry(message, perplexity) # Perplexity
+                            scraper_logger.info(f'Response text: {response_text}')
                             # response_text = """
                             # {
                             #     "address":"Schonberglaan 189, 3454HS, Utrecht",
@@ -380,27 +383,24 @@ async def scrape(broker):
         except PlaywrightTimeoutError as e:
             scraper_logger.info(f"Timeout reaching {broker['name']}, or simply, no listings to scrape - skipping!")
             scraper_logger.info(f"-- End {broker['name']} --")
+            perplexity.close()
         except Exception as e:
             if href:
                 scraper_logger.error(f"There was an error processing this listing - {href}")
             scraper_logger.error(traceback.format_exc())
+            perplexity.close()
         finally:
             await browser.close()
+            perplexity.close()
 
     scraper_logger.info(f"-- End {broker['name']} --")
 
 def scrape_broker(broker):
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    
-    coroutine = scrape(broker)
     try:
-        loop.run_until_complete(coroutine)
+        asyncio.run(scrape(broker))
     except Exception as e:
-        scraper_logger.info(f"An error occurred while scraping {broker['name']} in {area}: {e}")
+        scraper_logger.error(f"An error occurred while scraping {broker['name']} in {area}: {e}")
         scraper_logger.error(traceback.format_exc())
-    finally:
-        loop.close()
 
 if __name__ == "__main__":
     # Parse arguments
@@ -424,8 +424,6 @@ if __name__ == "__main__":
     load_dotenv()
 
     api_key = os.getenv('API_KEY')
-    # Replacing with Perplexity
-    perplexity = Perplexity()
     
     config = load_config('./utilities/brokers.json')
     # Define the API endpoint
@@ -433,14 +431,12 @@ if __name__ == "__main__":
 
     scraper_logger.info('### Scraper started ###')
 
-    # Setup your asyncio event loop before the loop
-    with concurrent.futures.ThreadPoolExecutor() as executor:
+    max_workers = 10  # Adjust this value based on your requirements and system resources
+    # Concurrent execution
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = []
         for broker in config['brokers']:
             future = executor.submit(scrape_broker, broker)
             futures.append(future)
         
         concurrent.futures.wait(futures)
-
-    # Close perplexity connection
-    perplexity.close()
