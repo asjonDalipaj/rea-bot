@@ -129,14 +129,6 @@
          "cookie_modal_selector":""
       },
       {
-         "name":"Huurportaal",
-         "domain":"https://huurportaal.nl",
-         "url":"https://huurportaal.nl/en/for-rent?location={area}&order=desc&rent=0-{max_price}",
-         "listing_selector":"div[data-controller='thumbnail--main']",
-         "next_button_selector":"button[id=\"load-more\"]",
-         "cookie_modal_selector":"button[data-coi-action=\"reject_all\"]"
-      },
-      {
          "name": "Huurflits",
          "domain": "https://huurflits.nl",
          "url": "https://huurflits.nl/woningoverzicht/zoekresultaten?search={area}&price_low=0&price_high={max_price}",
