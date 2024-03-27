@@ -5,7 +5,6 @@ import json
 import re
 import traceback
 import os
-import sys
 from dotenv import load_dotenv
 import requests
 import argparse

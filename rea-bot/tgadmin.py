@@ -95,7 +95,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             # Prepare the full text including the filters and message
             full_text = (
                 "Hello, welcome back to Hopper, you're already registered.\n\n"
-                "*Current Filters:*\n"
+                "*Your current Filters:*\n"
                 f"{filters_text}\n\n"
                 "*Your Message:*\n"
                 f"{message_text}\n\n"
