@@ -1,6 +1,14 @@
 {
    "brokers":[
       {
+         "name": "Amstel Housing",
+         "domain": "https://www.amstelhousing.nl",
+         "url": "https://www.amstelhousing.nl/woningaanbod/huur/{area}?locationofinterest={area}&pricerange.maxprice={max_price}",
+         "listing_selector":"div.objectcontainer:has(span.new_forrent)",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
          "name": "VVA Amsterdam",
          "domain": "https://www.vva.amsterdam",
          "url": "https://www.vva.amsterdam/woningaanbod/huur/{area}?availability=1&locationofinterest={area}&moveunavailablelistingstothebottom=true&orderby=9&pricerange.maxprice={max_price}",
