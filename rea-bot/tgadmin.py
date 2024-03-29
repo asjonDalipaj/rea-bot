@@ -497,6 +497,7 @@ async def city_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
                 await update.message.reply_text(
                     "*Everything is set up!* You will now receive notifications as soon as a listing is published. Good luck!",
                     parse_mode=ParseMode.MARKDOWN)
+                return ConversationHandler.END
         else:
             await update.message.reply_text("There was an error saving your filter.")
             return ConversationHandler.END
