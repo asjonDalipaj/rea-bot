@@ -277,6 +277,18 @@ async def create_filters():
         db_api_logger.error(f"Error creating the filter: {e}")
         return jsonify({"message": "Failed to create listing", "error": str(e)}), 500
 
+@app.route('/filters/<int:filter_id>', methods=['DELETE'])
+async def delete_filter(filter_id):
+    async with async_session() as session:
+        filter_to_delete = await session.get(Filter, filter_id)
+
+        if filter_to_delete:
+            await session.delete(filter_to_delete)
+            await session.commit()
+            return jsonify({"message": "Filter deleted successfully"}), 200
+        else:
+            return jsonify({"message": "Filter not found"}), 404
+
 @app.route('/message', methods=['POST'])
 async def create_message():
     try:
@@ -292,7 +304,32 @@ async def create_message():
     except Exception as e:
         await session.rollback()
         db_api_logger.error(f"Error creating the filter: {e}")
-        return jsonify({"message": "Failed to create listing", "error": str(e)}), 500
+        return jsonify({"message": "Failed to create message", "error": str(e)}), 500
+    
+@app.route('/message/<int:user_id>', methods=['PUT'])
+async def update_message(user_id):
+    try:
+        data = await request.get_json()
+        message_text = data.get('message')
+
+        if not message_text:
+            return jsonify({"message": "Message text is required"}), 400
+
+        async with async_session() as session:
+            async with session.begin():
+                message = await session.execute(select(Message).where(Message.userid == user_id)).scalar_one_or_none()
+
+                if message:
+                    message.message = message_text
+                    await session.commit()
+                else:
+                    return jsonify({"message": "Message not found for the given user ID"}), 404
+
+        return jsonify(message.to_dict()), 200
+    except Exception as e:
+        await session.rollback()
+        db_api_logger.error(f"Error updating the message: {e}")
+        return jsonify({"message": "Failed to update message", "error": str(e)}), 500
 
 async def get_applying_message_by_userid(userid):
     # Query the Message table for the applying message for the specified user
