@@ -1,6 +1,174 @@
 {
    "brokers":[
       {
+         "name": "Amstel Housing",
+         "domain": "https://www.amstelhousing.nl",
+         "url": "https://www.amstelhousing.nl/woningaanbod/huur/{area}?locationofinterest={area}&pricerange.maxprice={max_price}",
+         "listing_selector":"div.objectcontainer:has(span.new_forrent)",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
+         "name": "VVA Amsterdam",
+         "domain": "https://www.vva.amsterdam",
+         "url": "https://www.vva.amsterdam/woningaanbod/huur/{area}?availability=1&locationofinterest={area}&moveunavailablelistingstothebottom=true&orderby=9&pricerange.maxprice={max_price}",
+         "listing_selector":"article.objectcontainer:has(span.new_forrent)",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
+         "name": "It's housing",
+         "domain": "https://itshousing.nl",
+         "url": "https://itshousing.nl/woningaanbod/huur/{area}?locationofinterest={area}&moveunavailablelistingstothebottom=true&pricerange.minprice=500&pricerange.maxprice={max_price}",
+         "listing_selector":"article.objectcontainer:has(span.new_forrent)",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
+         "name": "Stadhouder Makelaardij",
+         "domain": "https://www.stadhoudermakelaardij.nl",
+         "url": "https://www.stadhoudermakelaardij.nl/aanbod/woningaanbod/-{max_price}/huur/",
+         "listing_selector":"a.aanbodEntryLink",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
+         "name": "Livresidential",
+         "domain": "https://livresidential.nl",
+         "url": "https://livresidential.nl/huurwoningen?range%5Bprice%5D=500%3A{max_price}&refinementList%5Bcity%5D%5B0%5D={area}",
+         "listing_selector":"a.flex.flex-col",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
+         "name": "Ma Residences",
+         "domain": "https://www.maresidences.nl/",
+         "url": "https://www.maresidences.nl/woningaanbod",
+         "listing_selector":"div.object:has(span.new_forrent)",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
+         "name": "Mozaiek Makelaardij",
+         "domain": "https://www.mozaiekmakelaardij.nl",
+         "url": "https://www.mozaiekmakelaardij.nl/woningaanbod/huur?availability=1&moveunavailablelistingstothebottom=true&orderby=10&orderdescending=true&pricerange.maxprice={max_price}",
+         "listing_selector":"div.object__holder",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
+         "name": "roxxle",
+         "domain": "https://roxxle.nl",
+         "url": "https://roxxle.nl/aanbod/huurwoningen?zoekopdracht={area}&prijs_max={max_price}&order=datum&direction=desc",
+         "listing_selector":"div.object_wrapper:has(span.label-nieuw)",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
+         "name":"Domvast",
+         "domain":"https://domvast.nl/",
+         "url":"https://domvast.nl/woningen/huur/",
+         "listing_selector":"article.woning",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
+         "name":"Van Rossum Makelaars",
+         "domain":"https://www.vanrossummakelaars.nl",
+         "url":"https://www.vanrossummakelaars.nl/aanbod/bedrijfsaanbod/{area}/-{max_price}/huur/",
+         "listing_selector":"div.aanbodEntry",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
+         "name":"Utrechtselect",
+         "domain":"https://utrechtselect.nl/",
+         "url":"https://utrechtselect.nl/",
+         "listing_selector":"article[class*='category-']",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
+         "name":"Molenbeek",
+         "domain":"https://molenbeek.nl/",
+         "url":"https://molenbeek.nl/wonen/aanbod?buy_rent=rent&rent_price=-{max_price}&distance=5&search={area}&order_by=created_at-desc&page=1",
+         "listing_selector":"div.index__grid > div.card--object",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
+         "name":"Makelaardij Stek",
+         "domain":"https://www.makelaardijstek.nl",
+         "url":"https://www.makelaardijstek.nl/woningaanbod/huur?moveunavailablelistingstothebottom=true&pricerange.maxprice={max_price}",
+         "listing_selector":"div.object_container",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
+         "name":"Burgersdijk",
+         "domain":"https://burgersdijk.com/",
+         "url":"https://burgersdijk.com/huurwoningen/?in={area}&vanaf=500&tot={max_price}",
+         "listing_selector":"a[data-publishedon]",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
+         "name":"Lemoo",
+         "domain":"https://www.lemoo.nl/",
+         "url":"https://www.lemoo.nl/woningaanbod?status=rent&city={area}&max_price={max_price}",
+         "listing_selector":"div[class='media border my-3 rounded-left text-left']",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
+         "name":"ImHomeRentals",
+         "domain":"https://imhomerentals.com/",
+         "url":"https://imhomerentals.com/advanced-search-slideshow/?sort=newest",
+         "listing_selector":"a.es-listings__image__link",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
+         "name":"Dak Woningbeleggingen",
+         "domain":"https://www.dakwoningbeleggingen.nl/",
+         "url":"https://www.dakwoningbeleggingen.nl/aanbod/woningaanbod/{area}/-{max_price}/huur/provincie-{area}/",
+         "listing_selector":"li.al4woning",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
+         "name":"Home to rent",
+         "domain":"https://www.hometorent.nl",
+         "url":"https://www.hometorent.nl/nl/aanbod#aanbod#{{%22view%22:%22grid%22,%22sort%22:%22addedDesc%22:%22%22,%22salesRentals%22:%22rentals%22,%22salesPriceMin%22:0,%22salesPriceMax%22:{max_price},%22devSalesPriceMin%22:0,%22devSalesPriceMax%22:{max_price},%22rentalsPriceMin%22:0,%22rentalsPriceMax%22:{max_price},%22devRentalsPriceMin%22:0,%22devRentalsPriceMax%22:{max_price}:5259487,%22page%22:1}}",
+         "listing_selector":"div.card-object",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
+         "name":"Melvinbloemendal",
+         "domain":"https://www.melvinbloemendal.com/",
+         "url":"https://www.melvinbloemendal.com/woningaanbod/huur/{area}?locationofinterest={area}&moveunavailablelistingstothebottom=true&orderby=10&orderdescending=true&pricerange.maxprice={max_price}",
+         "listing_selector":"div.object",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
+         "name": "Huurflits",
+         "domain": "https://huurflits.nl",
+         "url": "https://huurflits.nl/woningoverzicht/zoekresultaten?search={area}&price_low=0&price_high={max_price}",
+         "listing_selector":"div[class='col-md-6 col-lg-6']:has(a:has-text('Nieuw'))",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
+         "name": "Vizier Makelaardij",
+         "domain": "https://www.viziermakelaardij.nl",
+         "url": "https://www.viziermakelaardij.nl/woningaanbod/huur/{area}?locationofinterest={area}&moveunavailablelistingstothebottom=true&orderby=9&pricerange.maxprice={max_price}",
+         "listing_selector":"div.object_photo_container:has(span.new_forrent)",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
          "name": "donnevastgoed",
          "domain": "https://www.donnevastgoed.nl/",
          "url": "https://www.donnevastgoed.nl/aanbod",
@@ -41,14 +209,6 @@
          "cookie_modal_selector":""
       },
       {
-         "name": "VGW group",
-         "domain": "https://vgwgroup.nl/",
-         "url": "https://vgwgroup.nl/en-gb/residential-listings/rent/type-apartment,house?pricerange.maxprice={max_price}&pricerange.minprice=400",
-         "listing_selector":"article.objectcontainer:has(span.new_forrent)",
-         "next_button_selector":"",
-         "cookie_modal_selector":""
-      },
-      {
          "name": "Start Housing",
          "domain": "https://www.starthousing.nl",
          "url": "https://www.starthousing.nl/woningaanbod/huur/{area}?locationofinterest={area}&moveunavailablelistingstothebottom=true&pricerange.maxprice={max_price}",
@@ -65,28 +225,12 @@
          "cookie_modal_selector":""
       },
       {
-         "name": "Huurflits",
-         "domain": "https://huurflits.nl",
-         "url": "https://huurflits.nl/woningoverzicht/zoekresultaten?search={area}&price_low=0&price_high={max_price}",
-         "listing_selector":"div[class='col-md-6 col-lg-6']:has(a:has-text('Nieuw'))",
-         "next_button_selector":"",
-         "cookie_modal_selector":""
-      },
-      {
          "name": "EU-Makelaardij",
          "domain": "https://www.eu-makelaardij.com/",
          "url": "https://www.eu-makelaardij.com/woningaanbod?status=rent&city={area}&max_price={max_price}",
          "listing_selector":"div.listing-house:not(:has(span:has-text('Verhuurd')))",
          "next_button_selector":"",
          "cookie_modal_selector":""
-      },
-      {
-         "name":"Huurportaal",
-         "domain":"https://huurportaal.nl",
-         "url":"https://huurportaal.nl/en/for-rent?location={area}&order=desc&rent=0-{max_price}",
-         "listing_selector":"div[data-controller='thumbnail--main']",
-         "next_button_selector":"button[id=\"load-more\"]",
-         "cookie_modal_selector":"button[data-coi-action=\"reject_all\"]"
       },
       {
          "name": "Verkoopmakelaarbas",
@@ -105,14 +249,6 @@
          "cookie_modal_selector":""
       },
       {
-         "name": "roxxle",
-         "domain": "https://roxxle.nl",
-         "url": "https://roxxle.nl/aanbod/huurwoningen?zoekopdracht={area}&prijs_max={max_price}&order=datum&direction=desc",
-         "listing_selector":"div[class*='object_wrapper']:has(span.label-nieuw)",
-         "next_button_selector":"",
-         "cookie_modal_selector":""
-      },
-      {
          "name": "Een hoorn",
          "domain": "https://www.eenhoornmanagement.nl",
          "url": "https://www.eenhoornmanagement.nl/nl/aanbod",
@@ -123,8 +259,8 @@
       {
          "name":"Funda",
          "domain":"https://www.funda.nl",
-         "url":"https://www.funda.nl/zoeken/huur?selected_area=%5B%22{area}%22%5D&search_result={page_number}&price=%22-1250%22&sort=%22date_down%22",
-         "listing_selector":"div[data-test-id=\"search-result-item\"]",
+         "url":"https://www.funda.nl/zoeken/huur?selected_area=%5B%22{area}%22%5D&search_result={page_number}&price=%22-{max_price}%22&sort=%22date_down%22",
+         "listing_selector":"div[data-test-id=\"search-result-item\"]:has(li:has-text('Nieuw'))",
          "next_button_selector":"li:not(.disabled) > a > span:has-text(\"Volgende\")",
          "cookie_modal_selector":".didomi-popup-backdrop"
       },
@@ -205,14 +341,6 @@
          "domain":"https://www.pararius.nl",
          "url":"https://www.pararius.nl/huurwoningen/{area}/0-{max_price}",
          "listing_selector":"li.search-list__item--listing",
-         "next_button_selector":"",
-         "cookie_modal_selector":""
-      },
-      {
-         "name":"Jaap",
-         "domain":"https://www.jaap.nl",
-         "url":"https://www.jaap.nl/huurhuizen/{area}",
-         "listing_selector":"app-listing-item",
          "next_button_selector":"",
          "cookie_modal_selector":""
       },
