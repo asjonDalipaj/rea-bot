@@ -428,7 +428,7 @@ async def max_sqm_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             parse_mode=ParseMode.MARKDOWN)
         return States.MIN_BEDROOM
     except ValueError:
-        await update.message.reply_text("Please enter a city between these: Utrecht")
+        await update.message.reply_text("Please enter a valid number for the maximum sqm")
         return States.MAX_SQM
     
 async def min_bedroom_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
