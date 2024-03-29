@@ -490,7 +490,7 @@ async def city_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
                     "You can reach me at *your phone number* or *your@mail.com*.\n\n"
                     "Hope to hear from you!\n"
                     "Kind regards,\n"
-                    f"{update.effective_user.username}")
+                    "*your name*")
                 
                 return States.MESSAGE
             else:
@@ -532,6 +532,17 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text('You canceled. Open the menu and tap on ''start'' for inserting again the filters.')
     return ConversationHandler.END
 
+async def about(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    about_text = (
+        "This is a rental assistant bot created by Hopper. It helps users set up filters and apply for rental listings.\n\n"
+        "Features:\n"
+        "- Set up filters for furnished properties, bills inclusion, price range, square meters, bedrooms, and city\n"
+        "- Customize an applying message template\n"
+        "- Receive notifications when new listings matching the filters are published\n\n"
+        "To get started, use the /start command."
+    )
+    await update.message.reply_text(about_text, parse_mode=ParseMode.MARKDOWN)
+
 def main():
     # Create the Application and pass it your bot's token.
     tg_bot_hash = os.getenv('TG_BOT_HASH')
@@ -561,6 +572,7 @@ def main():
     )
 
     application.add_handler(conv_handler)
+    application.add_handler(CommandHandler('about', about))
     application.run_polling()
 
 if __name__ == '__main__':
