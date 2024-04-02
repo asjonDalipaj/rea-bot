@@ -27,6 +27,13 @@ def get_filters_for_user(user_id):
     else:
         return []
 
+def check_listing_partial_match(listing):
+    response = requests.post(f'{DB_API_BASE_URL}/listings/match', json=listing)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        return []
+
 def normalize_string(s):
     # Convert to lowercase and strip whitespace
     s = s.lower().strip()
@@ -91,26 +98,27 @@ def notify_flask_app(user, listing):
     response = requests.post(f'{DB_API_BASE_URL}/notify', json=notification_data)
     return response.status_code
 
-
-# Todo manage logging and exception handling for listings. Notify to admin
+# Todo 2 change ip address before running scraper
 
 def check_and_notify(listing):
     # Todo manage if api is down
-    users = get_users()
-    # scraper_logger.info('Users: %s' % users)
-    for user in users:
-        # scraper_logger.info('User: %s' % user)
-        filters = get_filters_for_user(user['id'])
-        # scraper_logger.info('Filters: %s', filters)
-        if listing_matches_filters(listing, filters):
-            scraper_logger.info('Matches filters, sending notification')
-            notify_flask_app(user, listing)
-        # else:
-        #     if user['username'] == 'OfficialAssa':
-        #         scraper_logger.info('Sending notification to admin')
-        #         scraper_logger.info('Listing: %s', listing)
-        #         scraper_logger.info('Filters: %s', filters)
-        #         notify_flask_app(user['chat_id'], listing)
+    # Checking if matching already partially existing listing
+    if check_listing_partial_match(listing):
+        users = get_users()
+        # scraper_logger.info('Users: %s' % users)
+        for user in users:
+            # scraper_logger.info('User: %s' % user)
+            filters = get_filters_for_user(user['id'])
+            # scraper_logger.info('Filters: %s', filters)
+            if listing_matches_filters(listing, filters):
+                scraper_logger.info('Matches filters, sending notification')
+                notify_flask_app(user, listing)
+            # else:
+            #     if user['username'] == 'OfficialAssa':
+            #         scraper_logger.info('Sending notification to admin')
+            #         scraper_logger.info('Listing: %s', listing)
+            #         scraper_logger.info('Filters: %s', filters)
+            #         notify_flask_app(user['chat_id'], listing)
 
 def cleanse(response_text):
     start = response_text.find('{')
@@ -348,7 +356,7 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                             #     "including_bills":"false"
                             # }
                             # """
-                            # Looks like cleanse is not needed anymore? :D
+
                             response_text = cleanse(response_text)
                             response_data = json.loads(response_text)
                             

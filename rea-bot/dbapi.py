@@ -9,6 +9,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.future import select
+from fuzzywuzzy import fuzz
 
 # Initialize Quart app
 app = Quart(__name__)
@@ -161,6 +162,37 @@ async def create_listing():
         # Replace `db_api_logger.error` with your logger's name
         db_api_logger.error(f"Error creating listing: {e}")
         return jsonify({"message": "Failed to create listing", "error": str(e)}), 500
+    
+@app.route('/listings/match', methods=['POST'])
+async def match_listing():
+    try:
+        data = await request.get_json()
+        listing_link = data.get('listing_link')
+        address = data.get('address')
+
+        if not listing_link or not address:
+            return jsonify({"message": "Missing required fields: listing_link and address"}), 400
+
+        async with async_session() as session:
+            # Query the database to find a listing with the given listing_link
+            listing = await session.execute(select(Listing).where(Listing.listing_link == listing_link)).scalar()
+
+            if listing:
+                # Calculate the similarity between the input address and the stored address
+                similarity = fuzz.ratio(address.lower(), listing.address.lower())
+
+                if similarity >= 90:
+                    return jsonify({"message": "Listing found", "listing": listing.to_dict()}), 200
+                else:
+                    return jsonify({"message": "Listing found but address doesn't match"}), 200
+            else:
+                return jsonify({"message": "Listing not found"}), 404
+
+    except Exception as e:
+        # Assuming you have set up logging as in Flask
+        # Replace `db_api_logger.error` with your logger's name
+        db_api_logger.error(f"Error matching listing: {e}")
+        return jsonify({"message": "Failed to match listing", "error": str(e)}), 500
     
 @app.route('/notify', methods=['POST'])
 async def notify():

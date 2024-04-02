@@ -21,6 +21,7 @@ Flask==3.0.0
 Flask-Migrate==4.0.5
 Flask-SQLAlchemy==3.1.1
 frozenlist==1.4.1
+fuzzywuzzy==0.18.0
 greenlet==3.0.1
 grpclib==0.4.3
 h11==0.14.0
@@ -38,7 +39,7 @@ itsdangerous==2.1.2
 Jinja2==3.1.3
 loguru==0.7.2
 Mako==1.3.2
-markdown-it-py==3.0.0
+markdown-it-py==2.2.0
 MarkupSafe==2.1.3
 mdurl==0.1.2
 memory-profiler==0.61.0
@@ -47,7 +48,7 @@ modal-client==0.56.4376
 multidict==6.0.4
 perplexityai @ git+https://github.com/nathanrchn/perplexityai.git@b4eed9ff2522ffba5b671843a0f912d9024d99e5
 playwright==1.40.0
-poe-api-wrapper==1.3.6
+poe-api-wrapper==1.3.7
 priority==2.0.0
 protobuf==4.25.1
 psutil==5.9.8
@@ -64,7 +65,7 @@ Quart==0.19.4
 quickjs==1.19.4
 requests==2.31.0
 requests-toolbelt==1.0.0
-rich==13.7.0
+rich==13.3.4
 rsa==4.9
 sigtools==4.0.1
 sniffio==1.3.0
