@@ -239,7 +239,14 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
 
         try:
             # Wait for the page to load fully
-            await page.wait_for_load_state()
+            await page.wait_for_load_state('networkidle')
+
+            # if broker['name'] == 'Pararius':
+            #     html_broker = await page.inner_html('body')
+
+            #     with open ('./debug/html_' + broker['name'] + '.html', 'w') as file_html:
+            #         file_html.write(html_broker)
+            #     await page.screenshot(path='./debug/screenshot_' + broker['name'] + '-0.png')
 
             # Extract data from the page
             # html_broker = await page.inner_html('body')
@@ -251,13 +258,6 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
             if not listings:
                 await page.wait_for_selector(ad_selector, timeout=8000)
                 listings = await page.query_selector_all(ad_selector)
-
-            # if broker['name'] == 'Pararius':
-            #     html_broker = await page.inner_html('body')
-    
-            #     with open ('./debug/html_' + broker['name'] + '.html', 'w') as file_html:
-            #         file_html.write(html_broker)
-            #     await page.screenshot(path='./debug/screenshot_' + broker['name'] + '.png')
             
             for listing in listings:
                     text = await listing.inner_text()
@@ -268,6 +268,13 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                     outer_html = await page.evaluate('(element) => element.outerHTML', listing)
                     # with open ('outer_html.html', 'w') as file_html:
                     #     file_html.write(outer_html)
+
+                    # if broker['name'] == 'Pararius':
+                    #     html_broker = await page.inner_html('body')
+
+                    #     with open ('./debug/html_' + broker['name'] + '.html', 'w') as file_html:
+                    #         file_html.write(html_broker)
+                    #     await page.screenshot(path='./debug/screenshot_' + broker['name'] + '-1.png')
                     
                     # Search for hrefs within the HTML using the regex
                     matches = href_regex.findall(outer_html)
@@ -309,6 +316,12 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                             await listing_page.goto(f"{href}")
                             await listing_page.wait_for_load_state()
 
+
+                            # if broker['name'] == 'Pararius':
+                            #     html_broker = await listing_page.inner_html('body')
+
+                            #     await listing_page.screenshot(path='./debug/screenshot_' + broker['name'] + '-2.png')
+
                             # Reading the whole body because might be the AI can cross-find some information
                             # from other boxes present in the page rather the description only
                             page_text = await listing_page.inner_text('body')
@@ -344,7 +357,7 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                             # scraper_logger.info(f'message: {message}')
                             # response_text = await send_message_with_retry(client, bot, message, 270446664) # chinchilla
                             response_text = await send_message_with_retry(message) # Perplexity
-                            # scraper_logger.info(f'Response text: {response_text}')
+                            scraper_logger.info(f'Response text: {response_text}')
                             # response_text = """
                             # {
                             #     "address":"Schonberglaan 189, 3454HS, Utrecht",

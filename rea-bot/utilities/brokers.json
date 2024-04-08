@@ -1,6 +1,14 @@
 {
    "brokers":[
       {
+         "name":"Pararius",
+         "domain":"https://www.pararius.nl",
+         "url":"https://www.pararius.nl/huurwoningen/{area}/0-{max_price}",
+         "listing_selector":"li.search-list__item--listing:has(span.listing-label--new)",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
          "name": "It's housing",
          "domain": "https://itshousing.nl",
          "url": "https://itshousing.nl/woningaanbod/huur/{area}?locationofinterest={area}&moveunavailablelistingstothebottom=true&pricerange.minprice=500&pricerange.maxprice={max_price}",
@@ -227,7 +235,7 @@
       {
          "name": "EU-Makelaardij",
          "domain": "https://www.eu-makelaardij.com/",
-         "url": "https://www.eu-makelaardij.com/woningaanbod?status=rent&city={area}&max_price={max_price}",
+         "url": "https://www.eu-makelaardij.com/woningaanbod?offer=rent&location={area}&maxprice={max_price}",
          "listing_selector":"div.listing-house:not(:has(span:has-text('Verhuurd')))",
          "next_button_selector":"",
          "cookie_modal_selector":""
@@ -335,14 +343,6 @@
          "listing_selector":"li[class=\"row article property\"]",
          "next_button_selector": "",
          "cookie_modal_selector": ""
-      },
-      {
-         "name":"Pararius",
-         "domain":"https://www.pararius.nl",
-         "url":"https://www.pararius.nl/huurwoningen/{area}/0-{max_price}",
-         "listing_selector":"li.search-list__item--listing",
-         "next_button_selector":"",
-         "cookie_modal_selector":""
       },
       {
          "name": "WVO",
