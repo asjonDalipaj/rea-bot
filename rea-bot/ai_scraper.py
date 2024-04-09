@@ -65,7 +65,7 @@ def listing_matches_filters(listing, filters):
         filter_city = normalize_string(filter['city']) if filter['city'] else listing_address
         
         # Calculate adjusted price based on bills inclusion
-        adjusted_price = listing_price + 160 if not including_bills and filter.get('including_bills', '').lower() == 'true' else listing_price
+        adjusted_price = listing_price + 160 if not including_bills else listing_price
         
         scraper_logger.info(f"Filter {idx} - Listing is including bills? {including_bills}")
         scraper_logger.info(f"Filter {idx} - Listing is furnished? {furnished}")
