@@ -30,8 +30,10 @@ def get_filters_for_user(user_id):
 def check_listing_partial_match(listing):
     response = requests.post(f'{DB_API_BASE_URL}/listings/match', json=listing)
     if response.status_code == 200:
+        scraper_logger.info('Partial match found')
         return response.json()
     else:
+        scraper_logger.info('Match not found, check for sending notification')
         return []
 
 def normalize_string(s):
@@ -103,7 +105,7 @@ def notify_flask_app(user, listing):
 def check_and_notify(listing):
     # Todo manage if api is down
     # Checking if matching already partially existing listing
-    if check_listing_partial_match(listing):
+    if not check_listing_partial_match(listing):
         users = get_users()
         # scraper_logger.info('Users: %s' % users)
         for user in users:
