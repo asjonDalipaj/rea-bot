@@ -99,7 +99,7 @@ class Listing(Base):
             'listing_link': self.listing_link,
             'furnished': self.furnished,
             'including_bills': self.including_bills,
-            'date': self.date.isoformat()
+            'date': self.date.isoformat() if self.date else None
         }
     
 class Message(Base):

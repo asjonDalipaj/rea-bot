@@ -300,7 +300,7 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                             # Parse the response JSON into a Python dictionary
                             scraper_logger.info(f'Found data! - Skipping call to AI')
                             continue
-                        else:
+                        elif response.status_code != 500:
 
                             # Delay for not overcrowding the servers
                             await asyncio.sleep(10)
