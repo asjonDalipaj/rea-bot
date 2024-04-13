@@ -174,22 +174,24 @@ async def match_listing():
 
         async with async_session() as session:
             # Query the database to find listings and check the address similarity
-            listings = await session.execute(select(Listing)).scalars().all()
+            listings_result = await session.execute(select(Listing))
+            listings = listings_result.scalars().all()
             matches = []
             for listing in listings:
                 # Calculate the similarity between the input address and the stored address
-                similarity = fuzz.token_set_ratio(address.lower(), listing.address.lower())
+                similarity = fuzz.ratio(address.lower(), listing.address.lower())
+
                 if similarity >= 95:
+                    # db_api_logger.info(f'Similarity: {similarity} matching {address.lower()} with {listing.address.lower()}, {listing.listing_link}')
                     matches.append(listing)
 
             if matches:
-                # Return all listings that match the address with a similarity of 90% or more
+                # Return all listings that match the address with a similarity of 95% or more
                 return jsonify({"message": "Listings found", "listings": [match.to_dict() for match in matches]}), 200
             else:
                 return jsonify({"message": "No listings found with a matching address"}), 404
 
     except Exception as e:
-        # Replace `db_api_logger.error` with your actual logger's name
         db_api_logger.error(f"Error finding listings by address match: {e}")
         return jsonify({"message": "Failed to find listings by address", "error": str(e)}), 500
         

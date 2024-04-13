@@ -104,23 +104,21 @@ def notify_flask_app(user, listing):
 
 def check_and_notify(listing):
     # Todo manage if api is down
-    # Checking if matching already partially existing listing
-    if not check_listing_partial_match(listing):
-        users = get_users()
-        # scraper_logger.info('Users: %s' % users)
-        for user in users:
-            # scraper_logger.info('User: %s' % user)
-            filters = get_filters_for_user(user['id'])
-            # scraper_logger.info('Filters: %s', filters)
-            if listing_matches_filters(listing, filters):
-                scraper_logger.info('Matches filters, sending notification')
-                notify_flask_app(user, listing)
-            # else:
-            #     if user['username'] == 'OfficialAssa':
-            #         scraper_logger.info('Sending notification to admin')
-            #         scraper_logger.info('Listing: %s', listing)
-            #         scraper_logger.info('Filters: %s', filters)
-            #         notify_flask_app(user['chat_id'], listing)
+    users = get_users()
+    # scraper_logger.info('Users: %s' % users)
+    for user in users:
+        # scraper_logger.info('User: %s' % user)
+        filters = get_filters_for_user(user['id'])
+        # scraper_logger.info('Filters: %s', filters)
+        if listing_matches_filters(listing, filters):
+            scraper_logger.info('Matches filters, sending notification')
+            notify_flask_app(user, listing)
+        # else:
+        #     if user['username'] == 'OfficialAssa':
+        #         scraper_logger.info('Sending notification to admin')
+        #         scraper_logger.info('Listing: %s', listing)
+        #         scraper_logger.info('Filters: %s', filters)
+        #         notify_flask_app(user['chat_id'], listing)
 
 def cleanse(response_text):
     start = response_text.find('{')
@@ -241,7 +239,7 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
 
         try:
             # Wait for the page to load fully
-            await page.wait_for_load_state('networkidle', timeout=60000)
+            await page.wait_for_load_state('networkidle', timeout=20000)
 
             # if broker['name'] == 'Pararius':
             #     html_broker = await page.inner_html('body')
@@ -359,7 +357,7 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                             # scraper_logger.info(f'message: {message}')
                             # response_text = await send_message_with_retry(client, bot, message, 270446664) # chinchilla
                             response_text = await send_message_with_retry(message) # Perplexity
-                            scraper_logger.info(f'Response text: {response_text}')
+                            # scraper_logger.info(f'Response text: {response_text}')
                             # response_text = """
                             # {
                             #     "address":"Schonberglaan 189, 3454HS, Utrecht",
@@ -374,17 +372,21 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
 
                             response_text = cleanse(response_text)
                             response_data = json.loads(response_text)
+                            scraper_logger.info(f'Response text: {response_text}')
                             
                             # Add a new field with the key 'listing_link' and the value of href
                             response_data['listing_link'] = href
                             updated_response_text = json.dumps(response_data, ensure_ascii=False)
                             # scraper_logger.info(updated_response_text)
 
-                            save_data(updated_response_text)
+                            if not check_listing_partial_match(response_data):
+                                check_and_notify(response_data)
                             # scraper_logger.info(f"Data - page {page_number}: {data}")
+
+                            save_data(updated_response_text)
                             
                             # scraper_logger.info('check_and_notify')
-                            check_and_notify(response_data)
+                            # Checking if matching already partially existing listing
 
                             # Close the listing page and context after processing
                             await listing_page.close()

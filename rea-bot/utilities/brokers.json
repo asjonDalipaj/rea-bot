@@ -1,18 +1,18 @@
 {
    "brokers":[
       {
-         "name": "Amstel Housing",
-         "domain": "https://www.amstelhousing.nl",
-         "url": "https://www.amstelhousing.nl/woningaanbod/huur/{area}?locationofinterest={area}&pricerange.maxprice={max_price}",
-         "listing_selector":"div.objectcontainer:has(span.new_forrent)",
-         "next_button_selector":"",
-         "cookie_modal_selector":""
-      },
-      {
          "name":"Pararius",
          "domain":"https://www.pararius.nl",
          "url":"https://www.pararius.nl/huurwoningen/{area}/0-{max_price}",
          "listing_selector":"li.search-list__item--listing:has(span.listing-label--new)",
+         "next_button_selector":"",
+         "cookie_modal_selector":""
+      },
+      {
+         "name": "Amstel Housing",
+         "domain": "https://www.amstelhousing.nl",
+         "url": "https://www.amstelhousing.nl/woningaanbod/huur/{area}?locationofinterest={area}&pricerange.maxprice={max_price}",
+         "listing_selector":"div.objectcontainer:has(span.new_forrent)",
          "next_button_selector":"",
          "cookie_modal_selector":""
       },
