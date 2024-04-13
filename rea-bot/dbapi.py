@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timedelta
 from logger import setup_logger
 from dotenv import load_dotenv
 from telegram import Bot
@@ -6,7 +7,7 @@ from quart import Quart, jsonify, request
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.future import select
 from fuzzywuzzy import fuzz
@@ -86,6 +87,7 @@ class Listing(Base):
     listing_link = Column(String, nullable=False)
     furnished = Column(String, nullable=False, server_default='no')
     including_bills = Column(String, nullable=False, server_default='no')
+    date = Column(DateTime, default=datetime.datetime.now)
 
     def to_dict(self):
         return {
@@ -96,9 +98,10 @@ class Listing(Base):
             'energy_label': self.energy_label,
             'listing_link': self.listing_link,
             'furnished': self.furnished,
-            'including_bills': self.including_bills
+            'including_bills': self.including_bills,
+            'date': self.date.isoformat()
         }
-
+    
 class Message(Base):
     __tablename__ = 'message'  # Correct table name for messages
     id = Column(Integer, primary_key=True)
@@ -173,8 +176,11 @@ async def match_listing():
             return jsonify({"message": "Missing required field: address"}), 400
 
         async with async_session() as session:
+            # Calculate the date 7 days ago
+            seven_days_ago = datetime.now() - timedelta(days=7)
+
             # Query the database to find listings and check the address similarity
-            listings_result = await session.execute(select(Listing))
+            listings_result = await session.execute(select(Listing).where(Listing.date >= seven_days_ago))
             listings = listings_result.scalars().all()
             matches = []
             for listing in listings:
@@ -182,7 +188,6 @@ async def match_listing():
                 similarity = fuzz.ratio(address.lower(), listing.address.lower())
 
                 if similarity >= 95:
-                    # db_api_logger.info(f'Similarity: {similarity} matching {address.lower()} with {listing.address.lower()}, {listing.listing_link}')
                     matches.append(listing)
 
             if matches:
@@ -194,7 +199,7 @@ async def match_listing():
     except Exception as e:
         db_api_logger.error(f"Error finding listings by address match: {e}")
         return jsonify({"message": "Failed to find listings by address", "error": str(e)}), 500
-        
+       
 @app.route('/notify', methods=['POST'])
 async def notify():
     data = await request.get_json()
