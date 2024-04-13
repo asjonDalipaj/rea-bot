@@ -356,6 +356,7 @@ async def furnished_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     reply_keyboard = [['Yes', 'No']]
     text = update.message.text.lower()
     context.user_data['furnished'] = text
+    print(f'User input for furnished %s', context.user_data['furnished'])
     context.user_data['furnished'] = 'true' if context.user_data['furnished'] == 'yes' else 'false'
 
     markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True, resize_keyboard=True)
@@ -369,7 +370,10 @@ async def furnished_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 async def including_bills_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     text = update.message.text.lower()
     context.user_data['including_bills'] = text
+    print(f'User input for including bills %s', context.user_data['including_bills'])
     context.user_data['including_bills'] = 'true' if context.user_data['furnished'] == 'yes' else 'false'
+
+    print(f'Db value for including bills %s', context.user_data['including_bills'])
 
     await update.message.reply_text(
         "What would be the *minimum price* you consider? (whole numbers only)",

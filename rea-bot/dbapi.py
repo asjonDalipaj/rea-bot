@@ -167,33 +167,32 @@ async def create_listing():
 async def match_listing():
     try:
         data = await request.get_json()
-        listing_link = data.get('listing_link')
         address = data.get('address')
 
-        if not listing_link or not address:
-            return jsonify({"message": "Missing required fields: listing_link and address"}), 400
+        if not address:
+            return jsonify({"message": "Missing required field: address"}), 400
 
         async with async_session() as session:
-            # Query the database to find a listing with the given listing_link
-            listing = await session.execute(select(Listing).where(Listing.listing_link == listing_link)).scalar()
-
-            if listing:
+            # Query the database to find listings and check the address similarity
+            listings = await session.execute(select(Listing)).scalars().all()
+            matches = []
+            for listing in listings:
                 # Calculate the similarity between the input address and the stored address
-                similarity = fuzz.ratio(address.lower(), listing.address.lower())
+                similarity = fuzz.token_set_ratio(address.lower(), listing.address.lower())
+                if similarity >= 95:
+                    matches.append(listing)
 
-                if similarity >= 90:
-                    return jsonify({"message": "Listing found", "listing": listing.to_dict()}), 200
-                else:
-                    return jsonify({"message": "Listing found but address doesn't match"}), 200
+            if matches:
+                # Return all listings that match the address with a similarity of 90% or more
+                return jsonify({"message": "Listings found", "listings": [match.to_dict() for match in matches]}), 200
             else:
-                return jsonify({"message": "Listing not found"}), 404
+                return jsonify({"message": "No listings found with a matching address"}), 404
 
     except Exception as e:
-        # Assuming you have set up logging as in Flask
-        # Replace `db_api_logger.error` with your logger's name
-        db_api_logger.error(f"Error matching listing: {e}")
-        return jsonify({"message": "Failed to match listing", "error": str(e)}), 500
-    
+        # Replace `db_api_logger.error` with your actual logger's name
+        db_api_logger.error(f"Error finding listings by address match: {e}")
+        return jsonify({"message": "Failed to find listings by address", "error": str(e)}), 500
+        
 @app.route('/notify', methods=['POST'])
 async def notify():
     data = await request.get_json()

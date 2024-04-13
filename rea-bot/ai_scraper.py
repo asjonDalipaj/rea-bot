@@ -241,7 +241,7 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
 
         try:
             # Wait for the page to load fully
-            await page.wait_for_load_state('networkidle')
+            await page.wait_for_load_state('networkidle', timeout=60000)
 
             # if broker['name'] == 'Pararius':
             #     html_broker = await page.inner_html('body')
