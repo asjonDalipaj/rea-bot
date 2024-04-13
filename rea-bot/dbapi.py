@@ -87,7 +87,7 @@ class Listing(Base):
     listing_link = Column(String, nullable=False)
     furnished = Column(String, nullable=False, server_default='no')
     including_bills = Column(String, nullable=False, server_default='no')
-    date = Column(DateTime, default=datetime.now)
+    date = Column(DateTime, default=datetime.now())
 
     def to_dict(self):
         return {
