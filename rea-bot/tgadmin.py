@@ -86,10 +86,22 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             # Prepare text for each filter in the list
             filters_text_list = []
             for filter_ in filters:
+                furnished_text = "Not specified"
+                if filter_['furnished'] == 'true':
+                    furnished_text = "Yes"
+                elif filter_['furnished'] == 'false':
+                    furnished_text = "No"
+
+                including_bills_text = "Not specified"
+                if filter_['including_bills'] == 'true':
+                    including_bills_text = "Yes"
+                elif filter_['including_bills'] == 'false':
+                    including_bills_text = "No"
+
                 filter_text = (
                     f"*ID: {filter_['id']}*\n"
-                    f"Furnished: {'Yes' if filter_['furnished'] else 'No'}\n"
-                    f"Including bills: {'Yes' if filter_['including_bills'] else 'No'}\n"
+                    f"Furnished: {furnished_text}\n"
+                    f"Including bills: {including_bills_text}\n"
                     f"Min price: {filter_['min_price']}\n"
                     f"Max price: {filter_['max_price']}\n"
                     f"Min sqm: {filter_['min_sqm']}\n"
