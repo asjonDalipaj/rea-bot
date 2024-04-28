@@ -382,7 +382,7 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                                 check_and_notify(response_text)
                             # scraper_logger.info(f"Data - page {page_number}: {data}")
 
-                            # save_data(updated_response_text)
+                            save_data(updated_response_text)
                             
                             # scraper_logger.info('check_and_notify')
                             # Checking if matching already partially existing listing
