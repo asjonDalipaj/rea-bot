@@ -148,9 +148,6 @@ job*
 # Imgs
 img/
 
-# Censored utilities
-rea-bot/utilities/api_key.json
-
 # Test files
 rea-bot/*test*
 
@@ -159,3 +156,6 @@ rea-bot/*test*
 
 # Migration
 *tools*
+
+# Debug
+debug/

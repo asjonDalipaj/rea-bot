@@ -8,7 +8,7 @@ import os
 from dotenv import load_dotenv
 import requests
 import argparse
-from perplexity import Perplexity
+from poe_api_wrapper import PoeApi
 from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError
 
 scraper_logger = setup_logger('scraper_logger', './logs/scraper_logfile.log')
@@ -169,25 +169,27 @@ async def send_message_with_retry(message, max_retries=3):
     while attempt < max_retries:
         try:
             scraper_logger.info('Running query...')
-            response = perplexity.search_sync(message)
-            if response and 'text' in response:
-                # Concatenate the response text chunks into a single string
-                response_text = ''.join(response['text'])
+            bot = "vizcacha"
+            for chunk in client.send_message(bot, message, chat_id):
+                pass
+            scraper_logger.info(chunk["text"])
+
+            response = chunk["text"]
+            if response:
                 # Parse the concatenated string into a JSON object
-                response_json = json.loads(response_text)
-                # Extract the 'answer' value from the JSON object
-                answer = response_json.get('answer')  # Use .get() to avoid KeyError if 'answer' does not exist
-                if answer:
-                    # Log the 'answer' value
-                    # scraper_logger.info('Answer: %s', answer)
-                    # Return the 'answer' value
-                    return answer
-                else:
-                    scraper_logger.error("'answer' not found in response JSON")
+                scraper_logger.info("Cleansing response")
+                response_json = cleanse(response)
+                try:
+                    response_json = json.loads(response_json)
+                    if response_json:
+                        return response_json
+                    else:
+                        scraper_logger.error("Empty JSON response")
+                except json.JSONDecodeError as e:
+                    scraper_logger.error(f"JSON decode error: {e}")
+                    scraper_logger.error(f"Response: {response_json}")
             else:
-                scraper_logger.error("'text' not found in response")
-        except json.JSONDecodeError as e:
-            scraper_logger.error(f"JSON decode error: {e}")
+                scraper_logger.error("No text response found")
         except Exception as e:
             scraper_logger.error(f"An unexpected error occurred: {e}")
             scraper_logger.error(traceback.format_exc())
@@ -196,7 +198,6 @@ async def send_message_with_retry(message, max_retries=3):
             scraper_logger.info(f"Retrying... Attempt {attempt + 1}")
         else:
             scraper_logger.error(f"Failed to send message after {max_retries} retries. Skipping message.")
-
     return None
 
 async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_selector, page_number=1):
@@ -370,20 +371,18 @@ async def scrape(url, domain, ad_selector, next_button_selector, cookie_modal_se
                             # }
                             # """
 
-                            response_text = cleanse(response_text)
-                            response_data = json.loads(response_text)
                             scraper_logger.info(f'Response text: {response_text}')
                             
                             # Add a new field with the key 'listing_link' and the value of href
-                            response_data['listing_link'] = href
-                            updated_response_text = json.dumps(response_data, ensure_ascii=False)
+                            response_text['listing_link'] = href
+                            updated_response_text = json.dumps(response_text, ensure_ascii=False)
                             # scraper_logger.info(updated_response_text)
 
-                            if not check_listing_partial_match(response_data):
-                                check_and_notify(response_data)
+                            if not check_listing_partial_match(response_text):
+                                check_and_notify(response_text)
                             # scraper_logger.info(f"Data - page {page_number}: {data}")
 
-                            save_data(updated_response_text)
+                            # save_data(updated_response_text)
                             
                             # scraper_logger.info('check_and_notify')
                             # Checking if matching already partially existing listing
@@ -424,12 +423,19 @@ if __name__ == "__main__":
             return json.load(file)
 
     # Config
-    # Read API key from a file and pass it to the function
     load_dotenv()
 
-    api_key = os.getenv('API_KEY')
-    # Replacing with Perplexity
-    perplexity = Perplexity()
+    p_b = os.getenv('p_b')
+    p_lat = os.getenv('p_lat')
+    chat_id = os.getenv('chat_id')
+
+    tokens = {
+        'b': p_b,
+        'lat': p_lat
+    }
+
+    client = PoeApi(cookie=tokens)
+    # print(client.get_chat_history()['data'])
     
     config = load_config('./utilities/brokers.json')
     # Define the API endpoint
@@ -459,6 +465,3 @@ if __name__ == "__main__":
 
     # Close the event loop after all tasks are done
     loop.close()
-
-    # Close perplexity connection
-    perplexity.close()
