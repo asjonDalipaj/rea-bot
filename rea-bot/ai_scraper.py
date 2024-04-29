@@ -169,7 +169,7 @@ async def send_message_with_retry(message, max_retries=3):
     while attempt < max_retries:
         try:
             scraper_logger.info('Running query...')
-            bot = "gpt3_5"
+            bot = "chinchilla_instruct"
             for chunk in client.send_message(bot, message, chat_id):
                 pass
             scraper_logger.info(chunk["text"])
