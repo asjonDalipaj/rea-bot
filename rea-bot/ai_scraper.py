@@ -8,8 +8,44 @@ import os
 from dotenv import load_dotenv
 import requests
 import argparse
+import psutil
+import time
+import threading
 from poe_api_wrapper import PoeApi
 from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError
+
+def monitor_resources():
+    while True:
+        # Get CPU usage
+        cpu_percent = psutil.cpu_percent()
+        scraper_logger.info(f"CPU Usage: {cpu_percent}%")
+
+        # Get memory usage
+        memory_info = psutil.virtual_memory()
+        scraper_logger.info(f"Total Memory: {memory_info.total}")
+        scraper_logger.info(f"Used Memory: {memory_info.used}")
+        scraper_logger.info(f"Available Memory: {memory_info.available}")
+
+        # Get disk usage
+        disk_usage = psutil.disk_usage('/')
+        scraper_logger.info(f"Total Disk Space: {disk_usage.total}")
+        scraper_logger.info(f"Used Disk Space: {disk_usage.used}")
+        scraper_logger.info(f"Free Disk Space: {disk_usage.free}")
+
+        # Get network I/O statistics
+        net_io_counters = psutil.net_io_counters()
+        scraper_logger.info(f"Bytes Sent: {net_io_counters.bytes_sent}")
+        scraper_logger.info(f"Bytes Received: {net_io_counters.bytes_recv}")
+
+        scraper_logger.info("------------------------")
+
+        # Wait for 5 minutes before the next monitoring iteration
+        time.sleep(15)
+
+# Create a separate thread for monitoring
+monitoring_thread = threading.Thread(target=monitor_resources)
+monitoring_thread.daemon = True
+monitoring_thread.start()
 
 scraper_logger = setup_logger('scraper_logger', './logs/scraper_logfile.log')
 
@@ -435,7 +471,7 @@ if __name__ == "__main__":
     }
 
     client = PoeApi(cookie=tokens)
-    # print(client.get_chat_history()['data'])
+    # scraper_logger.info(client.get_chat_history()['data'])
     
     config = load_config('./utilities/brokers.json')
     # Define the API endpoint
