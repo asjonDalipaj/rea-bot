@@ -65,14 +65,6 @@
          "cookie_modal_selector":""
       },
       {
-         "name": "roxxle",
-         "domain": "https://roxxle.nl",
-         "url": "https://roxxle.nl/aanbod/huurwoningen?zoekopdracht={area}&prijs_max={max_price}&order=datum&direction=desc",
-         "listing_selector":"div.object_wrapper:has(span.label-nieuw)",
-         "next_button_selector":"",
-         "cookie_modal_selector":""
-      },
-      {
          "name":"Domvast",
          "domain":"https://domvast.nl/",
          "url":"https://domvast.nl/woningen/huur/",
